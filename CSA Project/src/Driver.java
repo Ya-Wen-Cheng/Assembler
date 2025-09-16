@@ -66,14 +66,52 @@ public class Driver {
     // 3. Second pass (to be done by teammate)
     File loadFile = new File("output_file");
     public void secondPass(File file) {
-        /**
-         * (1) Reset location counter to 0
-         * (2) Read inputLines again
-         * (3) Replace labels using symbolTable
-         * (4) Call instruction methods (LoadInstructions.OpXX)
-         * (5) Write machine code to loadFile
-         */
+        // (1) Reset location counter to 0
+        location = 0;
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+
+            // (2) Read inputLines again
+            for (String line : inputLines) {
+                if (line.isEmpty()) continue; // skip blanks
+
+                // Handle LOC directive (reset location if needed)
+                if (line.startsWith("LOC")) {
+                    String[] parts = line.split("\\s+");
+                    if (parts.length > 1) {
+                        location = Integer.parseInt(parts[1]);
+                    }
+                    continue;
+                }
+
+                // Split line into opcode + operands
+                String[] parts = line.split("\\s+", 2);
+                String opcode = parts[0].toUpperCase();
+                String[] operands = (parts.length > 1) ? parts[1].split(",") : new String[0];
+
+                // (3) Replace labels using symbolTable
+                for (int i = 0; i < operands.length; i++) {
+                    operands[i] = operands[i].trim();
+                    if (symbolTable.containsKey(operands[i])) {
+                        operands[i] = String.valueOf(symbolTable.get(operands[i]));
+                    }
+                }
+
+                // (4) Call instruction methods (LoadInstructions.OpXX / encode)
+                int machineCode = LoadInstructions.encode(opcode, operands);
+
+                // (5) Write machine code to loadFile
+                writer.write(String.format("0x%04X", machineCode));
+                writer.newLine();
+
+                location++; // move to next instruction
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error during second pass: " + e.getMessage());
+        }
     }
+
 
     // 4. Main
     public static void main(String[] args) {
