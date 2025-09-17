@@ -1,21 +1,13 @@
-import java.io.*;
-import java.util.*;
 
-public class IndexRegister {
 
-	private int Location;
-	private int Value;
+public class IndexRegister extends Storage {
+    private static final int MAX_REGISTERS = 3;
 
-	public int getValue(int Location) {
-		
-	}
-
-	public void setValue(int Location) {
-		
-	}
-
-	public void ConvertToMachineCode() {
-		
-	}
-
+    @Override
+    public void setValue(int location, int value) {
+        if (location < 1 || location > MAX_REGISTERS) {
+            throw new IllegalArgumentException("Invalid Index Register: IX" + location);
+        }
+        super.setValue(location, value);
+    }
 }

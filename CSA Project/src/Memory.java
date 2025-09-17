@@ -1,21 +1,23 @@
 import java.io.*;
 import java.util.*;
 
-public class Memory {
-
-	private int Location;
-	private int Value;
-
-	public int getValue(int Location) {
-		
-	}
-
-	public void setValue(int Location) {
-		
-	}
-
-	public void ConvertToMachineCode() {
-		
-	}
-
+class Memory extends Storage {
+	private static final int MAX_ADDRESS = 32;
+	
+	@Override
+	public void setValue(int address, int value) {
+        if (address < 0 || address >= MAX_ADDRESS) {
+        	throw new IllegalArgumentException("Invalid Memory Address: " + address);
+        }
+        super.setValue(address, value);
+    }
+	
+	
+	@Override
+	public Integer getValue(int address) {
+		if (address < 0 || address >= MAX_ADDRESS) {
+            throw new IllegalArgumentException("Invalid Memory Address: " + address);
+        }
+        return super.getValue(address);
+    }
 }
