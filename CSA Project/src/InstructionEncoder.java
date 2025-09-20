@@ -1,9 +1,9 @@
 import java.util.*;
+
 public class InstructionEncoder {
 
     public static int encode(String opcode, String[] rawOperands) {
 
-        // Clean and normalize operands
         List<String> cleaned = new ArrayList<>();
         for (String op : rawOperands) {
             String o = op.trim();
@@ -14,7 +14,6 @@ public class InstructionEncoder {
 
         int op;
 
-        // === Opcode mapping (octal) ===
         switch (opcode.toUpperCase()) {
             case "LDR": op = 01; break;
             case "STR": op = 02; break;
@@ -61,20 +60,24 @@ public class InstructionEncoder {
         if (opcode.matches("(?i)LDR|STR|LDA|AMR|SMR|JZ|JNE|JCC|JMA|JSR|SOB|JGE")) {
             int r = parse(operands[0]);
             int x = parse(operands[1]);
-            int addr = parse(operands[2]);
-            int i = parse(operands[3]);
-            code = (op << 10) | (r << 8) | (x << 6) | (i << 5) | (addr & 0x1F);
+            int addr = parse(operands[2]) & 0x1F;
+            int i = parse(operands[3]) & 0x1;
+            code = (op << 10) | (r << 8) | (x << 6) | (i << 5) | addr;
         } 
         else if (opcode.equalsIgnoreCase("LDX") || opcode.equalsIgnoreCase("STX")) {
             int x = parse(operands[0]);
-            int addr = parse(operands[1]);
-            int i = parse(operands[2]);
-            code = (op << 10) | (0 << 8) | (x << 6) | (i << 5) | (addr & 0x1F);
+            int addr = parse(operands[1]) & 0x1F;
+            int i = parse(operands[2]) & 0x1;
+            code = (op << 10) | (0 << 8) | (x << 6) | (i << 5) | addr;
         }
-        else if (opcode.matches("(?i)AIR|SIR|RFS")) {
+        else if (opcode.matches("(?i)AIR|SIR")) {
             int r = parse(operands[0]);
-            int immed = parse(operands[1]);
-            code = (op << 10) | (r << 8) | (immed & 0xFF);
+            int immed = parse(operands[1]) & 0x1F;
+            code = (op << 10) | (r << 8) | immed;
+        }
+        else if (opcode.equalsIgnoreCase("RFS")) {
+            int immed = parse(operands[0]) & 0x1F;
+            code = (op << 10) | immed;
         }
         else if (opcode.matches("(?i)SRC|RRC")) {
             int r = parse(operands[0]);
@@ -85,8 +88,8 @@ public class InstructionEncoder {
         }
         else if (opcode.matches("(?i)IN|OUT|CHK")) {
             int r = parse(operands[0]);
-            int devid = parse(operands[1]);
-            code = (op << 10) | (r << 8) | (devid & 0xFF);
+            int devid = parse(operands[1]) & 0xFF;
+            code = (op << 10) | (r << 8) | devid;
         }
         else if (opcode.matches("(?i)MLT|DVD|TRR|AND|ORR")) {
             int rx = parse(operands[0]);
@@ -103,12 +106,11 @@ public class InstructionEncoder {
         else if (opcode.equalsIgnoreCase("TRAP")) {
             int trap = parse(operands[0]) & 0xF;
             code = (op << 10) | (trap << 6);
-        } 
+        }
         else {
             throw new IllegalArgumentException("Opcode not supported yet: " + opcode);
         }
 
-        // ✅ force 16-bit and return
         return code & 0xFFFF;
     }
 
