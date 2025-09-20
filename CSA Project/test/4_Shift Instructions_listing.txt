@@ -1,0 +1,22 @@
+      	      	LOC 6               	;BEGIN AT MEMORY LOCATION 6
+000006	000005	Data 5              	;MEMORY[6] = 5
+000007	000012	Data 10             	;MEMORY[7] = 10
+000010	000003	Data 3              	;MEMORY[8] = 3
+000011	000037	Data End            	;MEMORY[9] = ADDRESS OF End
+000012	000000	Data 0              	;MEMORY[10] = 0
+000013	000014	Data 12             	;MEMORY[11] = 12
+000014	000011	Data 9              	;MEMORY[12] = 9
+000015	000022	Data 18             	;MEMORY[13] = 18
+000016	000007	Data 7              	;MEMORY[14] = 7
+000017	002006	LDR 0,0,6           	;R0 = MEMORY[6] = 5
+000020	002407	LDR 1,0,7           	;R1 = MEMORY[7] = 10
+000021	003010	LDR 2,0,8           	;R2 = MEMORY[8] = 3
+000022	003413	LDR 3,0,11          	;R3 = MEMORY[11] = 12
+000023	062034	SRC 0,1,1,1         	;R0 <<= 1 LOGICAL
+000024	062440	SRC 1,2,0,0         	;R1 >>= 2 ARITHMETIC
+000025	065074	RRC 2,3,1,1         	;R2 ROTATE LEFT 3 LOGICAL
+000026	065504	RRC 3,4,0,1         	;R3 ROTATE RIGHT 4 LOGICAL
+000027	006012	LDA 0,0,10          	;R0 = MEMORY[10] = 0, to set condition code
+000030	020011	JZ 0,0,9            	;IF R0 = 0, JUMP TO End
+      	      	LOC 31              	;END OF TEST IN MEMORY
+000037	000000	HLT                 	;STOP EXECUTION

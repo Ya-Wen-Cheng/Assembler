@@ -1,0 +1,17 @@
+      	      	LOC 4               	;BEGIN AT LOCATION 4
+000004	000005	Data 5              	;M4 = 5
+000005	000007	Data 7              	;M5 = 7
+000006	000017	Data 15             	;M6 = 15
+000007	000023	Data End            	;M7 = address of label End
+000010	000024	Data 20             	;M8 = 20
+000011	000031	Data 25             	;M9 = 25
+000012	102104	LDX 1,4             	;X1 <- c(M4) = 5
+000013	002105	LDR 0,1,5           	;R0 <- c(EA), EA = 5 + X1 = 5+5=10 (M10 not defined yet, should be 0 initially)
+000014	004006	STR 0,0,6           	;M6 <- c(R0) (store whatever is in R0 to M6)
+000015	007010	LDA 2,0,8           	;R2 <- EA = 8
+000016	104111	STX 1,9             	;M9 <- c(X1) (store 5 into M9)
+000017	003404	LDR 3,0,4           	;R3 <- c(M4) = 5
+000020	006407	LDA 1,0,7           	;R1 <- EA = 7
+000021	021423	JZ 3,0,End          	;Jump to End if R3 == 0 (should not jump, R3=5)
+000022	007411	LDA 3,0,9           	;R3 <- EA = 9 (just another op to confirm control flow)
+000023	000000	HLT                 	;STOP EXECUTION

@@ -1,0 +1,32 @@
+LOC 4              ;BEGIN AT LOCATION 4
+Data 5             ;M4 = 5
+Data 7             ;M5 = 7
+Data 15            ;M6 = 15
+Data End           ;M7 = address of label End
+Data 20            ;M8 = 20
+Data 25            ;M9 = 25
+
+; --- Test Op41: Load Index Register ---
+LDX 1,4            ;X1 <- c(M4) = 5
+
+; --- Test Op01: Load Register from memory ---
+LDR 0,1,5          ;R0 <- c(EA), EA = 5 + X1 = 5+5=10 (M10 not defined yet, should be 0 initially)
+
+; --- Test Op02: Store Register to memory ---
+STR 0,0,6          ;M6 <- c(R0) (store whatever is in R0 to M6)
+
+; --- Test Op03: Load Register with Address ---
+LDA 2,0,8          ;R2 <- EA = 8
+
+; --- Test Op42: Store Index Register to memory ---
+STX 1,9            ;M9 <- c(X1) (store 5 into M9)
+
+; --- Extra check: Change register values ---
+LDR 3,0,4          ;R3 <- c(M4) = 5
+LDA 1,0,7          ;R1 <- EA = 7
+
+; --- Conditional jump test ---
+JZ 3,0,End         ;Jump to End if R3 == 0 (should not jump, R3=5)
+LDA 3,0,9          ;R3 <- EA = 9 (just another op to confirm control flow)
+
+End: HLT           ;STOP EXECUTION

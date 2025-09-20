@@ -1,0 +1,46 @@
+LOC 0          ; BEGIN AT LOCATION 0
+Data 0         ; R0 = 0 → triggers JZ
+Data 3         ; R1 = 3 → triggers JNE
+Data 1         ; Condition code = 1 → triggers JC
+Data 10        ; Memory pointer for indirect jump
+Data End       ; Store location of End label
+
+LOC 5
+Start: LDR 0,0,0       ; Load 0 into R0
+LDR 1,0,1              ; Load 3 into R1
+LDA 0,0,2              ; Set Condition Code to 1
+
+JZ 0,0,4,1             ; Indirect jump R0=0 → jumps to memory[4] = 10
+JNE 1,0,4,1            ; Indirect jump R1 != 0 → jumps to memory[4] = 10
+JCC 0,0,4,1            ; Indirect jump CC bit = 1 → jumps to memory[4] = 10
+
+JMA 0,6,1              ; Indirect unconditional jump via memory[6]
+JSR 0,7,1              ; Indirect subroutine jump via memory[7]
+
+LOC 10
+HLT                     ; Target of indirect jumps
+
+LOC 12
+Data 20                 ; Placeholder for indirect address
+
+LOC 14
+Data 15                 ; Placeholder for indirect address
+
+LOC 16
+Data 99                 ; Arbitrary data
+
+LOC 18
+LDR 2,0,1               ; Subroutine load 3 into R2
+RFS 5                    ; Return with immediate value 5 in R0
+
+LOC 20
+JGE 1,0,22              ; Jump Greater than or equal → R1 = 3 ≥ 0
+SOB 1,0,24              ; Subtract One and Branch → R1 = 2 → jump
+
+LOC 22
+HLT                     ; Stop after JGE
+
+LOC 24
+HLT                     ; Stop after SOB
+
+End: HLT                ; Final stop

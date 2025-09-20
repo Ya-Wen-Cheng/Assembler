@@ -1,0 +1,38 @@
+LOC 0          ; BEGIN AT LOCATION 0
+Data 0         ; R0 = 0 → triggers JZ
+Data 3         ; R1 = 3 → triggers JNE
+Data 1         ; Condition code = 1 → triggers JC
+Data End       ; MEM[3] → target for indirect conditional jumps
+Data JMAaddr   ; MEM[4] → target for indirect JMA
+Data JSRaddr   ; MEM[5] → target for indirect JSR
+
+LOC 5
+Start: LDR 0,0,0       ; Load 0 into R0
+LDR 1,0,1              ; Load 3 into R1
+LDA 0,0,2              ; Set Condition Code to 1
+
+JZ 0,0,3,1             ; Indirect jump via MEM[3] → End
+JNE 1,0,3,1            ; Indirect jump via MEM[3] → End
+JCC 0,0,3,1            ; Indirect jump via MEM[3] → End
+
+JMA 0,4,1              ; Indirect unconditional jump via MEM[4] → LOC 16
+JSR 0,5,1              ; Indirect subroutine jump via MEM[5] → LOC 18
+
+LOC 16
+JMAaddr: HLT            ; Target for indirect JMA
+
+LOC 18
+JSRaddr: LDR 2,0,1      ; Subroutine load 3 into R2
+RFS 5                   ; Return with immediate value 5 in R0
+
+LOC 20
+JGE 1,0,22              ; Jump Greater than or equal → R1 ≥ 0
+SOB 1,0,24              ; Subtract One and Branch → R1 = 2 → jump
+
+LOC 22
+HLT                     ; Stop after JGE
+
+LOC 24
+HLT                     ; Stop after SOB
+
+End: HLT                ; Final stop

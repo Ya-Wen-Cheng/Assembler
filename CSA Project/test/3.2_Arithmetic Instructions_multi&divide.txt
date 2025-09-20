@@ -1,0 +1,35 @@
+LOC 6               ; BEGIN AT LOCATION 6
+Data 7              ; PUT 7 AT LOCATION 6
+Data 3              ; PUT 3 AT LOCATION 7
+Data 2              ; PUT 2 AT LOCATION 8
+Data 0              ; PUT 0 AT LOCATION 9
+Data End            ; POINTER TO END LABEL AT LOCATION 10
+
+; TEST MLT: R0*R2 -> R0=high, R1=low
+LDR 0,0,6           ; R0 <- 7
+LDR 2,0,8           ; R2 <- 2
+MLT 0,2             ; R0,R1 <- R0*R2
+
+; TEST DVD: R2/R0 -> R2=quotient, R3=remainder
+LDR 0,0,6           ; R0 <- 7
+LDR 2,0,8           ; R2 <- 2
+DVD 2,0             ; R2,R3 <- R2/R0
+
+; TEST TRR: Compare R0 and R2
+TRR 0,2             ; Set cc(4) if R0=R2
+
+; TEST AND: Logical AND R0 & R2 -> R0
+AND 0,2             ; R0 <- R0 AND R2
+
+; TEST ORR: Logical OR R0 | R2 -> R0
+ORR 0,2             ; R0 <- R0 OR R2
+
+; TEST NOT: Logical NOT R0 -> R0
+NOT 0               ; R0 <- NOT R0
+
+; SETUP FOR CONDITION CODE CHECK
+LDA 0,0,9           ; R0 <- 0 (clear for CC test)
+JZ 0,0,10           ; IF R0=0, JUMP TO END
+
+LOC 25
+End: HLT            ; STOP

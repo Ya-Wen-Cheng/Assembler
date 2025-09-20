@@ -1,0 +1,31 @@
+LOC 6       ; BEGIN AT MEMORY LOCATION 6
+Data 5      ; MEMORY[6] = 5
+Data 10     ; MEMORY[7] = 10
+Data 3      ; MEMORY[8] = 3
+Data End    ; MEMORY[9] = ADDRESS OF End
+Data 0      ; MEMORY[10] = 0
+Data 12     ; MEMORY[11] = 12
+Data 9      ; MEMORY[12] = 9
+Data 18     ; MEMORY[13] = 18
+Data 7      ; MEMORY[14] = 7
+
+; LOAD REGISTERS
+LDR 0,0,6   ; R0 = MEMORY[6] = 5
+LDR 1,0,7   ; R1 = MEMORY[7] = 10
+LDR 2,0,8   ; R2 = MEMORY[8] = 3
+LDR 3,0,11  ; R3 = MEMORY[11] = 12
+
+; SHIFT AND ROTATE TESTS
+SRC 0,1,1,1 ; R0 <<= 1 LOGICAL
+SRC 1,2,0,0 ; R1 >>= 2 ARITHMETIC
+RRC 2,3,1,1 ; R2 ROTATE LEFT 3 LOGICAL
+RRC 3,4,0,1 ; R3 ROTATE RIGHT 4 LOGICAL
+
+; CHECK CONDITION CODES
+LDA 0,0,10  ; R0 = MEMORY[10] = 0, to set condition code
+
+; JUMP TEST
+JZ 0,0,9    ; IF R0 = 0, JUMP TO End
+
+LOC 31      ; END OF TEST IN MEMORY
+End: HLT    ; STOP EXECUTION

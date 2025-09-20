@@ -1,0 +1,19 @@
+      	      	LOC 4               	;BEGIN AT LOCATION 4
+000004	000024	Data 20             	;M4 = 20 (pointer to M20, used for LDR)
+000005	000025	Data 21             	;M5 = 21 (pointer to M21, used for STR)
+000006	000026	Data 22             	;M6 = 22 (pointer to M22, used for LDA)
+000007	000027	Data 23             	;M7 = 23 (pointer to M23, used for LDX)
+000010	000030	Data 24             	;M8 = 24 (pointer to M24, used for STX)
+      	      	LOC 20              
+000024	000017	Data 15             	;M20 = 15 (value for LDR indirect)
+000025	000000	Data 0              	;M21 = 0  (target for STR indirect)
+000026	000000	Data 0              	;M22 = 0  (LDA will load address here indirectly)
+000027	000007	Data 7              	;M23 = 7  (value for LDX indirect)
+000030	000000	Data 0              	;M24 = 0  (target for STX indirect)
+      	      	LOC 10              
+000012	002044	LDR 0,0,4,1         	;R0 <- c(M[c(4)]) = c(M20) = 15
+000013	004045	STR 0,0,5,1         	;M[c(5)] <- R0, c(5)=21, so M21 <- 15
+000014	006446	LDA 1,0,6,1         	;R1 <- EA = c(M6)=22
+000015	102247	LDX 2,7,1           	;X2 <- c(M[c(7)]) = c(M23)=7
+000016	104250	STX 2,8,1           	;M[c(8)] <- X2, c(8)=24, so M24 <- 7
+000017	000000	HLT                 	;STOP

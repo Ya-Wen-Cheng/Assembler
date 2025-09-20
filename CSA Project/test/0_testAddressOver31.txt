@@ -1,0 +1,38 @@
+LOC 10              ;BEGIN AT LOCATION 10
+Data 50             ;M10 = 50 (this will point to M50 when I=1)
+Data 20             ;M11 = 20 (M20 holds a value)
+Data 30             ;M12 = 30 (M30 will hold a result)
+Data Target         ;M13 = address of Target (for indirect jump/storage)
+Data 99             ;M14 = 99 (to test LDX indirect)
+
+; --- Memory pointed to by above addresses ---
+LOC 20
+Data 111            ;M20 = 111 (used by LDR indirect)
+
+LOC 30
+Data 0              ;M30 = 0 (STR indirect will put data here)
+
+LOC 40
+Data 77             ;M40 = 77 (used by STX indirect)
+
+; --- Start instructions ---
+LOC 50
+Data 15             ;M50 = 15 (will be used as indirect pointer target)
+
+LOC 60
+; --- Test Op01 with I=1 ---
+LDR 0,0,10,1        ;R0 <- c(M[c(10)]) = c(M50) = c(15)
+
+; --- Test Op02 with I=1 ---
+STR 0,0,12,1        ;M[c(12)] <- c(R0), c(12)=30, so M30 <- R0
+
+; --- Test Op03 with I=1 ---
+LDA 1,0,13,1        ;R1 <- EA = c(M13) = Target
+
+; --- Test Op41 with I=1 ---
+LDX 2,14,1          ;X2 <- c(M[c(14)]) = c(M99?) (depends on memory setup)
+
+; --- Test Op42 with I=1 ---
+STX 2,40,1          ;M[c(40)] <- c(X2), so indirect store using X2
+
+Target: HLT         ;STOP EXECUTION

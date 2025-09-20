@@ -1,0 +1,21 @@
+      	      	LOC 10              	;BEGIN AT LOCATION 10
+000012	000062	Data 50             	;M10 = 50 (this will point to M50 when I=1)
+000013	000024	Data 20             	;M11 = 20 (M20 holds a value)
+000014	000036	Data 30             	;M12 = 30 (M30 will hold a result)
+000015	000101	Data Target         	;M13 = address of Target (for indirect jump/storage)
+000016	000143	Data 99             	;M14 = 99 (to test LDX indirect)
+      	      	LOC 20              
+000024	000157	Data 111            	;M20 = 111 (used by LDR indirect)
+      	      	LOC 30              
+000036	000000	Data 0              	;M30 = 0 (STR indirect will put data here)
+      	      	LOC 40              
+000050	000115	Data 77             	;M40 = 77 (used by STX indirect)
+      	      	LOC 50              
+000062	000017	Data 15             	;M50 = 15 (will be used as indirect pointer target)
+      	      	LOC 60              
+000074	002052	LDR 0,0,10,1        	;R0 <- c(M[c(10)]) = c(M50) = c(15)
+000075	004054	STR 0,0,12,1        	;M[c(12)] <- c(R0), c(12)=30, so M30 <- R0
+000076	006455	LDA 1,0,13,1        	;R1 <- EA = c(M13) = Target
+000077	102256	LDX 2,14,1          	;X2 <- c(M[c(14)]) = c(M99?) (depends on memory setup)
+000100	104250	STX 2,40,1          	;M[c(40)] <- c(X2), so indirect store using X2
+000101	000000	HLT                 	;STOP EXECUTION

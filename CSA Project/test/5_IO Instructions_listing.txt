@@ -1,0 +1,29 @@
+      	      	LOC 6               	;BEGIN AT LOCATION 6
+000006	000012	Data 10             	;PUT 10 AT LOCATION 6 (input buffer)
+000007	000003	Data 3              	;PUT 3 AT LOCATION 7 (output device code)
+000010	000017	Data End            	;PUT location of End label AT LOCATION 8
+000011	000000	Data 0              	;LOCATION 9 (placeholder)
+000012	000014	Data 12             	;LOCATION 10
+000013	000011	Data 9              	;LOCATION 11
+000014	000022	Data 18             	;LOCATION 12
+000015	000014	Data 12             	;LOCATION 13
+000016	102207	LDX 2,7             	;X2 GETS 3 (address of output device code)
+000017	003412	LDR 3,0,10          	;R3 GETS 12 (load from location 10)
+000020	003212	LDR 2,2,10          	;R2 GETS 12
+000021	002652	LDR 1,2,10,1        	;R1 GETS 18 (indirect addressing)
+000022	006000	LDA 0,0,0           	;R0 GETS 0 to set CONDITION CODE
+000023	102110	LDX 1,8             	;X1 GETS location of End label
+000024	142000	IN 0,0              	;INPUT character from device 0 to R0
+000025	142401	IN 1,1              	;INPUT character from device 1 to R1
+000026	143002	IN 2,2              	;INPUT character from device 2 to R2
+000027	143403	IN 3,3              	;INPUT character from device 3 to R3
+000030	144000	OUT 0,0             	;OUTPUT R0 to device 0
+000031	144401	OUT 1,1             	;OUTPUT R1 to device 1
+000032	145002	OUT 2,2             	;OUTPUT R2 to device 2
+000033	145403	OUT 3,3             	;OUTPUT R3 to device 3
+000034	146000	CHK 0,0             	;CHECK device 0 status to R0
+000035	146401	CHK 1,1             	;CHECK device 1 status to R1
+000036	147002	CHK 2,2             	;CHECK device 2 status to R2
+000037	147403	CHK 3,3             	;CHECK device 3 status to R3
+      	      	LOC 15              	;END LABEL LOCATION (must be <=31)
+000017	000000	HLT                 	;STOP

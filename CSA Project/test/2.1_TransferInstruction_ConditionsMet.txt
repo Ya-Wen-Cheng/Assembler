@@ -1,0 +1,25 @@
+LOC 0        ; BEGIN AT LOCATION 0
+Data 5       ; PUT 5 AT LOCATION 0
+Data 0       ; PUT 0 AT LOCATION 1
+Data 10      ; PUT 10 AT LOCATION 2
+Data End     ; PUT LOCATION OF End AT LOCATION 3
+Data 3       ; PUT 3 AT LOCATION 4
+Data 1       ; PUT 1 AT LOCATION 5
+
+LOC 6
+Start: LDR 0,0,0   ; R0 GETS 5
+LDR 1,0,1          ; R1 GETS 0
+LDR 2,0,2          ; R2 GETS 10
+LDA 0,0,1          ; R0 GETS 0 to set CONDITION CODE
+LDX 1,4            ; X1 GETS 3
+LDX 2,5            ; X2 GETS 1
+
+JZ 0,1,3           ; IF R0=0, JUMP TO End (location 3)
+JNE 2,0,2          ; IF R2 != 0, JUMP TO LOCATION 2
+JCC 0,0,3           ; IF CONDITION CODE=1, JUMP TO End
+JMA 0,0,2          ; UNCONDITIONAL JUMP TO LOCATION 2
+JSR 0,1,4           ; JUMP AND SAVE RETURN ADDRESS TO SUBROUTINE AT LOC 4
+RFS 0,0,0          ; RETURN FROM SUBROUTINE
+
+LOC 31
+End: HLT           ; STOP

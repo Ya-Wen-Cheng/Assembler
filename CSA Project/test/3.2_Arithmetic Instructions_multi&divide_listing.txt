@@ -1,0 +1,20 @@
+      	      	LOC 6               	;BEGIN AT LOCATION 6
+000006	000007	Data 7              	;PUT 7 AT LOCATION 6
+000007	000003	Data 3              	;PUT 3 AT LOCATION 7
+000010	000002	Data 2              	;PUT 2 AT LOCATION 8
+000011	000000	Data 0              	;PUT 0 AT LOCATION 9
+000012	000031	Data End            	;POINTER TO END LABEL AT LOCATION 10
+000013	002006	LDR 0,0,6           	;R0 <- 7
+000014	003010	LDR 2,0,8           	;R2 <- 2
+000015	160200	MLT 0,2             	;R0,R1 <- R0*R2
+000016	002006	LDR 0,0,6           	;R0 <- 7
+000017	003010	LDR 2,0,8           	;R2 <- 2
+000020	163000	DVD 2,0             	;R2,R3 <- R2/R0
+000021	164200	TRR 0,2             	;Set cc(4) if R0=R2
+000022	166200	AND 0,2             	;R0 <- R0 AND R2
+000023	170200	ORR 0,2             	;R0 <- R0 OR R2
+000024	172000	NOT 0               	;R0 <- NOT R0
+000025	006011	LDA 0,0,9           	;R0 <- 0 (clear for CC test)
+000026	020012	JZ 0,0,10           	;IF R0=0, JUMP TO END
+      	      	LOC 25              
+000031	000000	HLT                 	;STOP

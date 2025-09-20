@@ -1,0 +1,41 @@
+LOC 0         ; BEGIN AT LOCATION 0
+Data 1        ; R0 = 1 → will NOT trigger JZ
+Data 0        ; R1 = 0 → will NOT trigger JNE
+Data 0        ; Condition code = 0 → will NOT trigger JC
+Data End      ; location of End label
+
+LOC 5
+Start: LDR 0,0,0       ; Load 1 into R0
+LOC 6
+LDR 1,0,1              ; Load 0 into R1
+LOC 7
+LDA 0,0,2              ; Set Condition Code to 0
+
+LOC 10
+JZ 0,0,20              ; Will NOT jump because R0 ≠ 0
+LOC 11
+JNE 1,0,21             ; Will NOT jump because R1 = 0
+LOC 12
+JCC 0,0,22             ; Will NOT jump because CC bit = 0
+LOC 13
+JMA 0,23               ; Unconditional jump to Location 23
+LOC 14
+JSR 0,24               ; Jump to subroutine at 24
+
+LOC 15
+JGE 1,0,25             ; Jump Greater than or equal → R1=0 will jump
+LOC 16
+SOB 1,0,26             ; Subtract One and Branch → R1=0 will NOT jump
+LOC 17
+RFS 0,0,0              ; Return from subroutine
+
+LOC 18
+Data 99                 ; Just some data
+
+LOC 24
+LDR 2,0,1               ; Subroutine load 0 into R2
+LOC 25
+RFS 7                   ; Return with immediate value 7 in R0
+
+LOC 30
+End: HLT                 ; Final program stop

@@ -1,0 +1,40 @@
+LOC 6          ; BEGIN AT LOCATION 6
+
+; --- Data Section ---
+Data 10        ; PUT 10 AT LOCATION 6 (input buffer)
+Data 3         ; PUT 3 AT LOCATION 7 (output device code)
+Data End       ; PUT location of End label AT LOCATION 8
+Data 0         ; LOCATION 9 (placeholder)
+Data 12        ; LOCATION 10
+Data 9         ; LOCATION 11
+Data 18        ; LOCATION 12
+Data 12        ; LOCATION 13
+
+; --- Instructions Section ---
+LDX 2,7        ; X2 GETS 3 (address of output device code)
+LDR 3,0,10     ; R3 GETS 12 (load from location 10)
+LDR 2,2,10     ; R2 GETS 12
+LDR 1,2,10,1   ; R1 GETS 18 (indirect addressing)
+LDA 0,0,0      ; R0 GETS 0 to set CONDITION CODE
+LDX 1,8        ; X1 GETS location of End label
+
+; --- Test IN Instruction ---
+IN 0,0         ; INPUT character from device 0 to R0
+IN 1,1         ; INPUT character from device 1 to R1
+IN 2,2         ; INPUT character from device 2 to R2
+IN 3,3         ; INPUT character from device 3 to R3
+
+; --- Test OUT Instruction ---
+OUT 0,0        ; OUTPUT R0 to device 0
+OUT 1,1        ; OUTPUT R1 to device 1
+OUT 2,2        ; OUTPUT R2 to device 2
+OUT 3,3        ; OUTPUT R3 to device 3
+
+; --- Test CHK Instruction ---
+CHK 0,0        ; CHECK device 0 status to R0
+CHK 1,1        ; CHECK device 1 status to R1
+CHK 2,2        ; CHECK device 2 status to R2
+CHK 3,3        ; CHECK device 3 status to R3
+
+LOC 15         ; END LABEL LOCATION (must be <=31)
+End: HLT       ; STOP
