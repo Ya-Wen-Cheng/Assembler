@@ -1,5 +1,8 @@
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,13 +11,22 @@ import java.util.List;
 
 public class Driver {
     public int location = 0; // location counter
-    // 1. File input (update with real filename later)
-    File file = new File("sourceProgram.txt");
 
-    // 2. First pass: build symbol table and collect input lines
+    // Input assembly program
+    File file = new File("sourceProgram.asm");
+
+    // Symbol table (label → address)
     Map<String, Integer> symbolTable = new HashMap<>();
+
+    // Holds all cleaned source lines (instructions + directives)
     List<String> inputLines = new ArrayList<>();
 
+    // Output file
+    File loadFile = new File("output_file.txt");
+
+    // ============================
+    // PASS 1: Build symbol table
+    // ============================
     public void firstPass(File file) {
         location = 0; // start from address 0
         try (Scanner sc = new Scanner(file)) {
@@ -32,10 +44,11 @@ public class Driver {
                     if (parts.length > 1) {
                         location = Integer.parseInt(parts[1]);
                     }
+                    inputLines.add(line);
                     continue;
                 }
 
-                // Handle labels (example: LOOP: ADD R1, R2)
+                // Handle labels (example: End: HLT)
                 if (line.contains(":")) {
                     String[] parts = line.split(":");
                     String label = parts[0].trim();
@@ -47,76 +60,153 @@ public class Driver {
                     }
                 }
 
-                // Save instruction (without comments/labels)
+                // Save instructions/directives (without comments/labels)
                 if (!line.isEmpty()) {
                     inputLines.add(line);
-                    location++; // increment location for each instruction
+                    location++; // increment location for each instruction or data
                 }
             }
         } catch (FileNotFoundException e) {
             System.out.println("Source file not found: " + e.getMessage());
         }
 
-        // Print symbol table for debugging
+        // Debug
         System.out.println("Symbol Table: " + symbolTable);
-        // Print cleaned input lines for debugging
         System.out.println("Input Lines: " + inputLines);
     }
+public void secondPass() {
+    location = 0; // Reset location counter
 
-    // 3. Second pass (to be done by teammate)
-    File loadFile = new File("output_file");
-    public void secondPass(File file) {
-        // (1) Reset location counter to 0
-        location = 0;
+    File listingFile = new File("listing_file.txt");
+    File loadFile = new File("load_file.txt");
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+    try (BufferedWriter listWriter = new BufferedWriter(new FileWriter(listingFile));
+         BufferedWriter loadWriter = new BufferedWriter(new FileWriter(loadFile))) {
 
-            // (2) Read inputLines again
-            for (String line : inputLines) {
-                if (line.isEmpty()) continue; // skip blanks
+        for (String rawLine : inputLines) {
+            if (rawLine == null || rawLine.trim().isEmpty()) continue;
 
-                // Handle LOC directive (reset location if needed)
-                if (line.startsWith("LOC")) {
-                    String[] parts = line.split("\\s+");
-                    if (parts.length > 1) {
+            // --- Separate code and comment ---
+            String[] partsComment = rawLine.split(";", 2);
+            String codePart = partsComment[0].trim();
+            String comment = (partsComment.length > 1) ? partsComment[1].trim() : "";
+
+            if (codePart.isEmpty()) continue;
+
+            // ---- LOC ----
+            if (codePart.toUpperCase().startsWith("LOC")) {
+                if (!comment.isEmpty()) {
+                    listWriter.write(String.format("%-6s\t%-6s\t%-20s\t;%s",
+                            "", "", codePart, comment));
+                } else {
+                    listWriter.write(String.format("%-6s\t%-6s\t%-20s",
+                            "", "", codePart));
+                }
+                listWriter.newLine();
+
+                String[] parts = codePart.split("\\s+");
+                if (parts.length > 1) {
+                    try {
                         location = Integer.parseInt(parts[1]);
-                    }
-                    continue;
-                }
-
-                // Split line into opcode + operands
-                String[] parts = line.split("\\s+", 2);
-                String opcode = parts[0].toUpperCase();
-                String[] operands = (parts.length > 1) ? parts[1].split(",") : new String[0];
-
-                // (3) Replace labels using symbolTable
-                for (int i = 0; i < operands.length; i++) {
-                    operands[i] = operands[i].trim();
-                    if (symbolTable.containsKey(operands[i])) {
-                        operands[i] = String.valueOf(symbolTable.get(operands[i]));
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid LOC value: " + parts[1]);
                     }
                 }
-
-                // (4) Call instruction methods (LoadInstructions.OpXX / encode)
-                int machineCode = LoadInstructions.encode(opcode, operands);
-
-                // (5) Write machine code to loadFile
-                writer.write(String.format("0x%04X", machineCode));
-                writer.newLine();
-
-                location++; // move to next instruction
+                continue;
             }
 
-        } catch (IOException e) {
-            System.out.println("Error during second pass: " + e.getMessage());
+            // ---- DATA ----
+            if (codePart.toUpperCase().startsWith("DATA")) {
+                String[] parts = codePart.split("\\s+");
+                if (parts.length < 2) continue;
+                String operand = parts[1].trim();
+                int value;
+
+                if (symbolTable.containsKey(operand)) {
+                    value = symbolTable.get(operand);
+                } else if (operand.equalsIgnoreCase("End")) {
+                    value = 1024;
+                } else {
+                    try {
+                        value = Integer.parseInt(operand);
+                    } catch (NumberFormatException e) {
+                        value = 0;
+                    }
+                }
+
+                // write to listing
+                if (!comment.isEmpty()) {
+                    listWriter.write(String.format("%06o\t%06o\t%-20s\t;%s",
+                            location, value, codePart, comment));
+                } else {
+                    listWriter.write(String.format("%06o\t%06o\t%-20s",
+                            location, value, codePart));
+                }
+                listWriter.newLine();
+
+                // write to load (only 2 columns)
+                loadWriter.write(String.format("%06o\t%06o", location, value));
+                loadWriter.newLine();
+
+                location++;
+                continue;
+            }
+
+            // ---- Instructions ----
+            String[] parts = codePart.split("\\s+", 2);
+            String opcode = parts[0].trim().toUpperCase();
+            String[] rawOperands = (parts.length > 1) ? parts[1].split(",") : new String[0];
+
+            List<String> operandList = new ArrayList<>();
+            for (String op : rawOperands) {
+                String o = op.trim();
+                if (o.isEmpty()) continue;
+                if (symbolTable.containsKey(o)) {
+                    operandList.add(String.valueOf(symbolTable.get(o)));
+                } else {
+                    operandList.add(o);
+                }
+            }
+            while (operandList.size() < 3) operandList.add("0");
+            String[] operands = operandList.toArray(new String[0]);
+
+            int machineCode;
+            try {
+                machineCode = InstructionEncoder.encode(opcode, operands);
+            } catch (Exception e) {
+                System.out.println("Encoding error at line: " + codePart + " → " + e.getMessage());
+                continue;
+            }
+
+            // write to listing
+            if (!comment.isEmpty()) {
+                listWriter.write(String.format("%06o\t%06o\t%-20s\t;%s",
+                        location, machineCode, codePart, comment));
+            } else {
+                listWriter.write(String.format("%06o\t%06o\t%-20s",
+                        location, machineCode, codePart));
+            }
+            listWriter.newLine();
+
+            // write to load (only 2 columns)
+            loadWriter.write(String.format("%06o\t%06o", location, machineCode));
+            loadWriter.newLine();
+
+            location++;
         }
+
+    } catch (IOException e) {
+        System.out.println("Error during second pass: " + e.getMessage());
     }
+}
 
-
-    // 4. Main
+    // ============================
+    // MAIN
+    // ============================
     public static void main(String[] args) {
         Driver driver = new Driver();
-        driver.firstPass(driver.file);  // run your First Pass
-        driver.secondPass(driver.file); // teammate will implement this
+        driver.firstPass(driver.file);   // Run Pass 1
+        driver.secondPass();             // Run Pass 2
+        //System.out.println("Assembly complete. Output written to output_file.txt");
     }
 }
