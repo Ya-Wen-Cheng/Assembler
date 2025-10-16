@@ -47,7 +47,7 @@ public class CPU extends Transformer {
 
     public void Reset(Memory memory) {
         ResetRegisters();
-        Arrays.fill(memory.Data, (short) 0);
+        memory.data.clear();
     }
 
     public void setGPR(short reg, short value) {
@@ -92,12 +92,12 @@ public class CPU extends Transformer {
 
     public void Execute(Memory memory) {
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
-        if (marVal >= 0 && marVal < memory.Data.length) {
-            short val = memory.Data[marVal];
-            DecimalToBinary(val, memoryBufferRegister, 16);
+        if (marVal >= 0 && marVal < 32) {
+            int val = memory.getValue(marVal);
+            DecimalToBinary((short) val, memoryBufferRegister, 16);
         } else {
             memoryFaultRegister[0] = 1;
-            System.out.println("Memory fault!");
+            System.out.println("Memory fault at address: " + marVal);
         }
     }
 }
