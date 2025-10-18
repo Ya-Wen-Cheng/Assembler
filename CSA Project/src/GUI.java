@@ -12,6 +12,7 @@ import java.io.File;
 
 public class GUI extends Application {
 
+
     private CPU_1_Simple cpu = new CPU_1_Simple();
     private Memory memory = new Memory();
     private boolean haltRequested = false;
@@ -55,7 +56,7 @@ public class GUI extends Application {
         grid.add(gprLabel, 0, 0);
         grid.add(ixrLabel, 4, 0);
 
-        for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
             gprFields[i] = new TextField();
             gprFields[i].setPrefWidth(70);
             int index = i;
@@ -69,7 +70,7 @@ public class GUI extends Application {
             grid.add(btn, 2, i + 1);
         }
 
-        for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
             ixrFields[i] = new TextField();
             ixrFields[i].setPrefWidth(70);
             int index = i;
@@ -83,9 +84,9 @@ public class GUI extends Application {
             grid.add(btn, 6, i + 1);
         }
 
-        String[] regs = {"PC", "MAR", "MBR", "IR", "CC"};
-        TextField[] fields = {pcField = new TextField(), marField = new TextField(),
-                mbrField = new TextField(), irField = new TextField(), ccField = new TextField()};
+    String[] regs = {"PC", "MAR", "MBR", "IR", "CC"};
+    TextField[] fields = {pcField = new TextField(), marField = new TextField(),
+        mbrField = new TextField(), irField = new TextField(), ccField = new TextField()};
 
         int row = 1;
         for (int i = 0; i < regs.length; i++) {
