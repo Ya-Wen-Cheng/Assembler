@@ -44,8 +44,7 @@ public class CPU extends Transformer {
         Arrays.fill(memoryFaultRegister, (char) 0);
         Arrays.fill(conditionCodeRegister, (char) 0);
     }
-    
-    
+
     public void Reset(Memory memory) {
         ResetRegisters();
         memory.data.clear();
@@ -60,16 +59,6 @@ public class CPU extends Transformer {
         };
         DecimalToBinary(value, target, 16);
     }
-    
-    public char[] getGPR(short reg) {
-    	char[] data = switch (reg) {
-    		case 1 -> gpr1Register;
-    		case 2 -> gpr2Register;
-            case 3 -> gpr3Register;
-            default -> gpr0Register;
-    	};
-    	return data;
-    }
 
     public void setIXR(short ix, short value) {
         char[] target = switch (ix) {
@@ -80,41 +69,17 @@ public class CPU extends Transformer {
         };
         DecimalToBinary(value, target, 16);
     }
-    
-    public char[] getIXR(short reg) {
-    	char[] data = switch (reg) {
-    		case 1 -> indexRegister1;
-    		case 2 -> indexRegister2;
-            case 3 -> indexRegister3;
-            default -> indexRegister1;
-    	};
-    	return data;
-    }
 
     public void setProgramCounter(short value) {
         DecimalToBinary(value, programCounter, 12);
-    }
-    
-    public char[] getProgramCounter() {
-        return programCounter;
     }
 
     public void setMemoryAddressRegister(short value) {
         DecimalToBinary(value, memoryAddressRegister, 12);
     }
-    
-    public char[] getMemoryAddressRegister() {
-        return memoryAddressRegister;
-    }
-    
-    
 
     public void setMemoryBufferRegister(short value) {
         DecimalToBinary(value, memoryBufferRegister, 16);
-    }
-    
-    public char[] getMemoryBufferRegister() {
-        return memoryBufferRegister;
     }
 
     public short getMemoryAddressValue() {

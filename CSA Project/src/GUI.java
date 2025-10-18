@@ -20,7 +20,6 @@ public class GUI extends Application {
     private TextField[] ixrFields = new TextField[3];
     private TextField pcField, marField, mbrField, irField, ccField;
     private TextField binaryField, octalField;
-    
 
     @Override
     public void start(Stage primaryStage) {
@@ -105,10 +104,7 @@ public class GUI extends Application {
                     short val = Short.parseShort(mbrField.getText());
                     memory.setValue(cpu.getMemoryAddressValue(), val);
                 });
-                case "PC" -> btn.setOnAction(e -> {
-                	cpu.setProgramCounter(Short.parseShort(pcField.getText()));
-                	System.out.print(cpu.getProgramCounter());
-                });
+                case "PC" -> btn.setOnAction(e -> cpu.setProgramCounter(Short.parseShort(pcField.getText())));
             }
 
             grid.add(label, 8, row);
@@ -193,7 +189,7 @@ public class GUI extends Application {
             System.out.println("Halt requested - program will stop at next instruction");
         });
 
-        Button ipl = new Button("IPL"); 
+        Button ipl = new Button("IPL");
         ipl.setStyle("-fx-background-color: red;");
         ipl.setOnAction(e -> {
             // Show file chooser for ROM loading
