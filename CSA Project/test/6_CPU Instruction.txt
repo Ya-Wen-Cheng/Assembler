@@ -1,0 +1,69 @@
+LOC 0              ; BEGIN AT LOCATION 0
+
+; --- CPU_1_Simple Memory Bounds Test ---
+; This test properly tests memory access bounds by using LDR instructions
+; that actually read from memory addresses
+
+; Test data in memory (addresses 0-15)
+Data 100           ; M0 = 100 (valid data at address 0)
+Data 200           ; M1 = 200 (valid data at address 1)
+Data 300           ; M2 = 300 (valid data at address 2)
+Data 400           ; M3 = 400 (valid data at address 3)
+Data 500           ; M4 = 500 (valid data at address 4)
+Data 600           ; M5 = 600 (valid data at address 5)
+Data 700           ; M6 = 700 (valid data at address 6)
+Data 800           ; M7 = 800 (valid data at address 7)
+Data 900           ; M8 = 900 (valid data at address 8)
+Data 1000          ; M9 = 1000 (valid data at address 9)
+Data 1100          ; M10 = 1100 (valid data at address 10)
+Data 1200          ; M11 = 1200 (valid data at address 11)
+Data 1300          ; M12 = 1300 (valid data at address 12)
+Data 1400          ; M13 = 1400 (valid data at address 13)
+Data 1500          ; M14 = 1500 (valid data at address 14)
+Data 1600          ; M15 = 1600 (valid data at address 15)
+
+; --- Instructions Section ---
+LOC 16
+
+; Test 1: Valid memory access (addresses 0-31)
+LDR 0,0,0          ; R0 = M[0] = 100 (valid address 0)
+LDR 1,0,1          ; R1 = M[1] = 200 (valid address 1)
+LDR 2,0,15         ; R2 = M[15] = 1600 (valid address 15)
+
+; Test 2: Invalid memory access (addresses > 31) - should cause error and stop
+LDR 0,0,32         ; R0 = M[32] (invalid address 32 - should cause error and stop)
+LDR 1,0,50         ; R1 = M[50] (invalid address 50 - should cause error and stop)
+LDR 2,0,100        ; R2 = M[100] (invalid address 100 - should cause error and stop)
+
+; Test 3: Invalid memory access (negative addresses) - should cause error and stop
+LDR 0,0,-1         ; R0 = M[-1] (invalid address -1 - should cause error and stop)
+LDR 1,0,-5         ; R1 = M[-5] (invalid address -5 - should cause error and stop)
+
+; Test 4: Index register testing with valid addresses
+LDR 0,1,0          ; R0 = M[0 + IX1] (valid if IX1 = 0)
+LDR 1,2,5          ; R1 = M[5 + IX2] (valid if IX2 = 0)
+LDR 2,3,10         ; R2 = M[10 + IX3] (valid if IX3 = 0)
+
+; Test 5: Index register testing with invalid addresses
+LDR 0,1,30         ; R0 = M[30 + IX1] (invalid if IX1 > 1)
+LDR 1,2,25         ; R1 = M[25 + IX2] (invalid if IX2 > 6)
+LDR 2,3,20         ; R2 = M[20 + IX3] (invalid if IX3 > 11)
+
+; Test 6: Edge case - exactly at boundary
+LDR 0,0,31         ; R0 = M[31] (valid - exactly at upper bound)
+LDR 1,0,0          ; R1 = M[0] (valid - exactly at lower bound)
+
+; Test 7: Store operations to test memory bounds
+STR 0,0,0          ; M[0] = R0 (valid address 0)
+STR 1,0,31         ; M[31] = R1 (valid address 31)
+STR 2,0,32         ; M[32] = R2 (invalid address 32 - should cause error and stop)
+STR 3,0,-1         ; M[-1] = R3 (invalid address -1 - should cause error and stop)
+
+; Test 8: Load Address operations (these load the address, not memory content)
+LDA 0,0,0          ; R0 = 0 (load address 0)
+LDA 1,0,31         ; R1 = 31 (load address 31)
+LDA 2,0,32         ; R2 = 32 (load address 32 - should cause error and stop)
+LDA 3,0,-1         ; R3 = -1 (load address -1 - should cause error and stop)
+
+LOC 31
+End: HLT           ; STOP EXECUTION
