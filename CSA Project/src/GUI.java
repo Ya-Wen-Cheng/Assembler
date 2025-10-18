@@ -98,6 +98,7 @@ public class GUI extends Application {
                 case "MAR" -> btn.setOnAction(e -> {
                     short marVal = Short.parseShort(marField.getText());
                     cpu.setMemoryAddressRegister(marVal);
+                    System.out.println("Set Memory Address Register to: "+marVal);
                     cpu.Execute(memory);
                     mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
                 });
@@ -107,7 +108,7 @@ public class GUI extends Application {
                 });
                 case "PC" -> btn.setOnAction(e -> {
                 	cpu.setProgramCounter(Short.parseShort(pcField.getText()));
-                	System.out.print(cpu.getProgramCounter());
+                	System.out.println("Set PC to: "+cpu.getProgramCounter() );             	
                 });
             }
 
@@ -148,16 +149,27 @@ public class GUI extends Application {
         input.getChildren().addAll(new Label("Binary"), binaryField, new Label("Octal"), octalField);
 
         VBox controlButtons = new VBox(10);
+        
         Button load = new Button("Load");
         load.setOnAction(e -> {
-            // Load instruction from memory address
+            // Load value from memory address (MAR) into MBR
+        	
             short marVal = cpu.getMemoryAddressValue();
+            System.out.println("DEBUG: Load button - MAR from GUI field: " + marVal);
             if (marVal >= 0 && marVal < 32) {
-                Integer machineCode = memory.getValue(marVal);
-                if (machineCode != null) {
-                    executeInstruction(machineCode);
-                    updateRegisterDisplay();
-                }
+                // Set MAR and execute memory read
+                cpu.setMemoryAddressRegister(marVal);
+                cpu.Execute(memory);
+                
+                // Update MBR display with the loaded value
+                short mbrVal = cpu.getMemoryBufferValue();
+                mbrField.setText(String.valueOf(mbrVal));
+                
+                // Update all register displays
+                updateRegisterDisplay();
+                System.out.println("Loaded value " + mbrVal + " from memory address " + marVal);
+            } else {
+                System.out.println("Invalid memory address: " + marVal + " (must be 0-31)");
             }
         });
 

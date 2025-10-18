@@ -2,7 +2,7 @@ import java.util.Arrays;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
-// import javafx.stage.FileChooser; // Commented out for compilation without JavaFX
+import javafx.stage.FileChooser;
 
 public class CPU_1_Simple extends Transformer {
 
@@ -27,7 +27,7 @@ public class CPU_1_Simple extends Transformer {
     public char[] memoryFaultRegister;
     public char[] memoryBufferRegister;
     public char[] memoryAddressRegister;
-    public char[] programCounter;
+    public char[] programCounter = "            ".toCharArray();
 
     public CPU_1_Simple() {
         // Initialize register objects using existing classes
@@ -100,7 +100,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Get file chooser for ROM loading - Commented out for compilation without JavaFX
-    /*
+    
     public static FileChooser getROMFileChooser() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select ROM File");
@@ -110,12 +110,13 @@ public class CPU_1_Simple extends Transformer {
         );
         return fileChooser;
     }
-    */
+    
 
     // Register setter methods using existing register classes
     public void setGPR(short reg, short value) {
         try {
             generalRegister.setValue(reg, value);
+            System.out.println("Set GPR "+reg+" to "+ value);
         } catch (IllegalArgumentException e) {
             System.out.println("ERROR: Invalid GPR register number " + reg + " - must be 0-3");
             System.exit(1);
@@ -125,6 +126,7 @@ public class CPU_1_Simple extends Transformer {
     public void setIXR(short ix, short value) {
         try {
             indexRegister.setValue(ix, value);
+            System.out.println("Set IXR "+ix+" to "+ value);
         } catch (IllegalArgumentException e) {
             System.out.println("ERROR: Invalid IXR register number " + ix + " - must be 1-3");
             System.exit(1);
@@ -199,6 +201,7 @@ public class CPU_1_Simple extends Transformer {
     // Memory access with bounds checking - Display errors and stop execution
     public void Execute(Memory memory) {
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
+        System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
         if (marVal >= 0 && marVal < 32) {
             Integer val = memory.getValue(marVal);
             if (val != null) {
