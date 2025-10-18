@@ -12,7 +12,7 @@ import java.io.File;
 
 public class GUI extends Application {
 
-    private CPU cpu = new CPU();
+    private CPU_1_Simple cpu = new CPU_1_Simple();
     private Memory memory = new Memory();
     private boolean haltRequested = false;
 
@@ -193,7 +193,7 @@ public class GUI extends Application {
         ipl.setStyle("-fx-background-color: red;");
         ipl.setOnAction(e -> {
             // Show file chooser for ROM loading
-            FileChooser fileChooser = CPU.getROMFileChooser();
+            FileChooser fileChooser = CPU_1_Simple.getROMFileChooser();
             File selectedFile = fileChooser.showOpenDialog(null);
             
             if (selectedFile != null) {
@@ -202,7 +202,7 @@ public class GUI extends Application {
                 haltRequested = false; // Reset halt flag
                 
                 // Load ROM file
-                if (cpu.loadROM(selectedFile)) {
+                if (cpu.loadROM(selectedFile, memory)) {
                     System.out.println("ROM loaded successfully from: " + selectedFile.getName());
                     // Update GUI display with loaded values
                     updateRegisterDisplay();
