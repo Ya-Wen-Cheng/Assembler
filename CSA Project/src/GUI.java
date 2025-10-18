@@ -7,11 +7,14 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
+import java.io.File;
 
 public class GUI extends Application {
 
     private CPU cpu = new CPU();
     private Memory memory = new Memory();
+    private boolean haltRequested = false;
 
     private TextField[] gprFields = new TextField[4];
     private TextField[] ixrFields = new TextField[3];
@@ -142,25 +145,76 @@ public class GUI extends Application {
 
         VBox controlButtons = new VBox(10);
         Button load = new Button("Load");
-        load.setOnAction(e -> cpu.Execute(memory));
+        load.setOnAction(e -> {
+            // Load instruction from memory address
+            short marVal = cpu.getMemoryAddressValue();
+            if (marVal >= 0 && marVal < 32) {
+                Integer machineCode = memory.getValue(marVal);
+                if (machineCode != null) {
+                    executeInstruction(machineCode);
+                    updateRegisterDisplay();
+                }
+            }
+        });
 
         Button store = new Button("Store");
-        store.setOnAction(e -> System.out.println("Store clicked"));
+        store.setOnAction(e -> {
+            // Store instruction - store MBR value to memory at MAR address
+            short marVal = cpu.getMemoryAddressValue();
+            short mbrVal = cpu.getMemoryBufferValue();
+            if (marVal >= 0 && marVal < 32) {
+                memory.setValue(marVal, mbrVal);
+                System.out.println("Stored value " + mbrVal + " to memory address " + marVal);
+                updateRegisterDisplay();
+            } else {
+                System.out.println("Invalid memory address: " + marVal);
+            }
+        });
 
         Button run = new Button("Run");
-        run.setOnAction(e -> cpu.Execute(memory));
+        run.setOnAction(e -> {
+            // Run all instructions continuously until HLT or completion
+            runAllInstructions();
+        });
 
         Button step = new Button("Step");
-        step.setOnAction(e -> cpu.Execute(memory));
+        step.setOnAction(e -> {
+            // Step through one instruction at a time
+            stepOneInstruction();
+        });
 
         Button halt = new Button("Halt");
-        halt.setOnAction(e -> System.out.println("Halt clicked"));
+        halt.setOnAction(e -> {
+            haltRequested = true;
+            System.out.println("Halt requested - program will stop at next instruction");
+        });
 
         Button ipl = new Button("IPL");
         ipl.setStyle("-fx-background-color: red;");
         ipl.setOnAction(e -> {
-            cpu.Reset(memory);
-            System.out.println("System Reset");
+            // Show file chooser for ROM loading
+            FileChooser fileChooser = CPU.getROMFileChooser();
+            File selectedFile = fileChooser.showOpenDialog(null);
+            
+            if (selectedFile != null) {
+                // Reset system first
+                cpu.Reset(memory);
+                haltRequested = false; // Reset halt flag
+                
+                // Load ROM file
+                if (cpu.loadROM(selectedFile)) {
+                    System.out.println("ROM loaded successfully from: " + selectedFile.getName());
+                    // Update GUI display with loaded values
+                    updateRegisterDisplay();
+                } else {
+                    System.out.println("Failed to load ROM file: " + selectedFile.getName());
+                }
+            } else {
+                // Just reset if no file selected
+                cpu.Reset(memory);
+                haltRequested = false; // Reset halt flag
+                System.out.println("System Reset");
+            }
         });
 
         controlButtons.getChildren().addAll(load, store, run, step, halt, ipl);
@@ -168,6 +222,105 @@ public class GUI extends Application {
         bottom.setRight(controlButtons);
 
         return bottom;
+    }
+
+    // Step through one instruction at a time
+    private void stepOneInstruction() {
+        short pc = cpu.getProgramCounter();
+        if (pc >= 0 && pc < 32) {
+            Integer machineCode = memory.getValue(pc);
+            if (machineCode != null) {
+                // Execute the instruction based on opcode
+                executeInstruction(machineCode);
+                updateRegisterDisplay();
+            }
+        }
+    }
+    
+    // Run all instructions continuously until HLT or completion
+    private void runAllInstructions() {
+        haltRequested = false; // Reset halt flag
+        short maxInstructions = 1000; // Safety limit to prevent infinite loops
+        short instructionCount = 0;
+        
+        while (instructionCount < maxInstructions && !haltRequested) {
+            short pc = cpu.getProgramCounter();
+            if (pc < 0 || pc >= 32) {
+                break; // Out of bounds
+            }
+            
+            Integer machineCode = memory.getValue(pc);
+            if (machineCode == null) {
+                break; // No instruction at this address
+            }
+            
+            // Check for HLT instruction (opcode 0x00)
+            int opcode = (machineCode >>> 10) & 0x3F;
+            if (opcode == 0x00) {
+                System.out.println("Program halted (HLT instruction)");
+                break;
+            }
+            
+            // Execute the instruction
+            executeInstruction(machineCode);
+            instructionCount++;
+        }
+        
+        if (haltRequested) {
+            System.out.println("Program stopped: Halt requested by user");
+        } else if (instructionCount >= maxInstructions) {
+            System.out.println("Program stopped: Maximum instruction limit reached");
+        }
+        
+        updateRegisterDisplay();
+    }
+    
+    // Execute a single instruction based on machine code
+    private void executeInstruction(int machineCode) {
+        int opcode = (machineCode >>> 10) & 0x3F;
+        int r = (machineCode >>> 8) & 0x3;
+        int x = (machineCode >>> 6) & 0x3;
+        int i = (machineCode >>> 5) & 0x1;
+        int address = machineCode & 0x1F;
+        
+        switch (opcode) {
+            case 0x03: // LDA - Load Address
+                cpu.ExecuteLDA((short) r, (short) x, (short) address, memory);
+                // Increment PC for next instruction
+                short currentPC = cpu.getProgramCounter();
+                cpu.setProgramCounter((short) (currentPC + 1));
+                break;
+            case 0x00: // HLT - Halt
+                System.out.println("HLT instruction executed");
+                break;
+            default:
+                // For other instructions, just increment PC
+                short pc = cpu.getProgramCounter();
+                cpu.setProgramCounter((short) (pc + 1));
+                break;
+        }
+    }
+
+    // Update register display in GUI
+    private void updateRegisterDisplay() {
+        // Update GPR fields
+        for (int i = 0; i < 4; i++) {
+            short value = cpu.getGPR((short) i);
+            gprFields[i].setText(String.valueOf(value));
+        }
+        
+        // Update IXR fields
+        for (int i = 0; i < 3; i++) {
+            short value = cpu.getIXR((short) (i + 1));
+            ixrFields[i].setText(String.valueOf(value));
+        }
+        
+        // Update other registers
+        pcField.setText(String.valueOf(cpu.getProgramCounter()));
+        marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
+        mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
+        irField.setText("0"); // Instruction register not directly accessible
+        ccField.setText(String.valueOf(cpu.getConditionCode()));
     }
 
     public static void main(String[] args) {
