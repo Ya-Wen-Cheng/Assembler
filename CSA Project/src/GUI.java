@@ -17,6 +17,7 @@ public class GUI extends Application {
     private TextField[] ixrFields = new TextField[3];
     private TextField pcField, marField, mbrField, irField, ccField;
     private TextField binaryField, octalField;
+    
 
     @Override
     public void start(Stage primaryStage) {
@@ -101,7 +102,10 @@ public class GUI extends Application {
                     short val = Short.parseShort(mbrField.getText());
                     memory.setValue(cpu.getMemoryAddressValue(), val);
                 });
-                case "PC" -> btn.setOnAction(e -> cpu.setProgramCounter(Short.parseShort(pcField.getText())));
+                case "PC" -> btn.setOnAction(e -> {
+                	cpu.setProgramCounter(Short.parseShort(pcField.getText()));
+                	System.out.print(cpu.getProgramCounter());
+                });
             }
 
             grid.add(label, 8, row);
@@ -143,6 +147,7 @@ public class GUI extends Application {
         VBox controlButtons = new VBox(10);
         Button load = new Button("Load");
         load.setOnAction(e -> cpu.Execute(memory));
+        
 
         Button store = new Button("Store");
         store.setOnAction(e -> System.out.println("Store clicked"));
@@ -156,7 +161,7 @@ public class GUI extends Application {
         Button halt = new Button("Halt");
         halt.setOnAction(e -> System.out.println("Halt clicked"));
 
-        Button ipl = new Button("IPL");
+        Button ipl = new Button("IPL"); 
         ipl.setStyle("-fx-background-color: red;");
         ipl.setOnAction(e -> {
             cpu.Reset(memory);
