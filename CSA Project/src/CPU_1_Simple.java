@@ -26,8 +26,8 @@ public class CPU_1_Simple extends Transformer {
     public char[] instructionRegister;
     public char[] memoryFaultRegister;
     public char[] memoryBufferRegister;
-    public char[] memoryAddressRegister;
-    public char[] programCounter = "            ".toCharArray();
+    public char[] memoryAddressRegister = new char[12];
+    public char[] programCounter = new char[12];
 
     public CPU_1_Simple() {
         // Initialize register objects using existing classes
@@ -155,11 +155,11 @@ public class CPU_1_Simple extends Transformer {
     }
 
     // Register getter methods
-    public short getMemoryAddressValue() {
-        return BinaryToDecimal(memoryAddressRegister, 12);
+    public short getMemoryAddressValue() throws BlankCharArrayException {
+    		return BinaryToDecimal(memoryAddressRegister, 12);  
     }
 
-    public short getMemoryBufferValue() {
+    public short getMemoryBufferValue() throws BlankCharArrayException{
         return BinaryToDecimal(memoryBufferRegister, 16);
     }
     
@@ -181,7 +181,7 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    public short getProgramCounter() {
+    public short getProgramCounter() throws BlankCharArrayException{
         return BinaryToDecimal(programCounter, 12);
     }
     
@@ -194,12 +194,12 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    public short getMemoryFaultRegister() {
+    public short getMemoryFaultRegister() throws BlankCharArrayException{
         return BinaryToDecimal(memoryFaultRegister, 4);
     }
 
     // Memory access with bounds checking - Display errors and stop execution
-    public void Execute(Memory memory) {
+    public void Execute(Memory memory) throws BlankCharArrayException{
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
         System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
         if (marVal >= 0 && marVal < 32) {
@@ -219,7 +219,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDR instruction: Load Register from memory
-    public void ExecuteLDR(short r, short x, short address, Memory memory) {
+    public void ExecuteLDR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -295,7 +295,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDX instruction: Load Index register
-    public void ExecuteLDX(short x, short address, Memory memory) {
+    public void ExecuteLDX(short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address
         short effectiveAddress = address;
         
@@ -339,7 +339,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute AMR instruction: Add Memory to Register
-    public void ExecuteAMR(short r, short x, short address, Memory memory) {
+    public void ExecuteAMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -368,7 +368,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute SMR instruction: Subtract Memory from Register
-    public void ExecuteSMR(short r, short x, short address, Memory memory) {
+    public void ExecuteSMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -413,7 +413,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Main instruction execution method
-    public void ExecuteInstruction(int machineCode, Memory memory) {
+    public void ExecuteInstruction(int machineCode, Memory memory) throws BlankCharArrayException{
         int opcode = (machineCode >>> 10) & 0x3F;
         int r = (machineCode >>> 8) & 0x3;
         int x = (machineCode >>> 6) & 0x3;
@@ -514,7 +514,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Test runner method - executes test file and shows results
-    public void runTest(String testFileName) {
+    public void runTest(String testFileName) throws BlankCharArrayException{
         System.out.println("=== CPU_1_Simple Test Execution ===");
         System.out.println("Test File: " + testFileName);
         System.out.println();
@@ -608,7 +608,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Static method to run test
-    public static void main(String[] args) {
+    public static void main(String[] args) throws BlankCharArrayException{
         CPU_1_Simple cpu = new CPU_1_Simple();
         
         // Default to the existing CPU instruction test file
