@@ -101,11 +101,9 @@ public class GUI extends Application {
                     System.out.println("Set Memory Address Register to: "+marVal);
                 });
                 case "MBR" -> btn.setOnAction(e -> {
-                	short mbrVal = Short.parseShort(mbrField.getText());
-                    cpu.setMemoryBufferRegister(mbrVal);
-                    System.out.println("Set Memory Buffer Register to: "+mbrVal);
-                	
-                
+	                	short mbrVal = Short.parseShort(mbrField.getText());
+	                    cpu.setMemoryBufferRegister(mbrVal);
+	                    System.out.println("Set Memory Buffer Register to: "+mbrVal);      
                 });
                 case "PC" -> btn.setOnAction(e -> {
                 	cpu.setProgramCounter(Short.parseShort(pcField.getText()));
@@ -194,6 +192,8 @@ public class GUI extends Application {
         	
         	}catch(BlankCharArrayException exp) {
         		System.out.println("Nothing is found in MAR");
+        	}catch(NumberFormatException exp) {
+        		System.out.println("MBR field is empty");
         	}
         	
         	
