@@ -233,25 +233,29 @@ public class GUI extends Application {
             // Show file chooser for ROM loading
             FileChooser fileChooser = CPU_1_Simple.getROMFileChooser();
             File selectedFile = fileChooser.showOpenDialog(null);
-            
+
+            // Reset system first
+            cpu.Reset(memory);
+            haltRequested = false;
+
             if (selectedFile != null) {
-                // Reset system first
-                cpu.Reset(memory);
-                haltRequested = false; // Reset halt flag
-                
-                // Load ROM file
                 if (cpu.loadROM(selectedFile, memory)) {
                     System.out.println("ROM loaded successfully from: " + selectedFile.getName());
-                    // Update GUI display with loaded values
                     updateRegisterDisplay();
+                    refreshGUIAfterIPL();
+
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("ROM Load Complete");
+                    alert.setHeaderText("ROM Loaded Successfully!");
+                    alert.setContentText("Loaded " + memory.data.size() + " memory locations from " + selectedFile.getName());
+                    alert.showAndWait();
                 } else {
                     System.out.println("Failed to load ROM file: " + selectedFile.getName());
                 }
             } else {
-                // Just reset if no file selected
-                cpu.Reset(memory);
-                haltRequested = false; // Reset halt flag
-                System.out.println("System Reset");
+                System.out.println("System Reset (no ROM file selected)");
+                updateRegisterDisplay();
+                refreshGUIAfterIPL();
             }
         });
 
@@ -284,7 +288,12 @@ public class GUI extends Application {
         haltRequested = false; // Reset halt flag
         short maxInstructions = 1000; // Safety limit to prevent infinite loops
         short instructionCount = 0;
-        
+
+        System.out.println("=== MEMORY DUMP (first 25 entries) ===");
+        for (int i = 0; i < 25; i++) {
+            System.out.println("Memory[" + i + "] = " + memory.getValue(i));
+        }
+
         while (instructionCount < maxInstructions && !haltRequested) {
         	try {
 	            short pc = cpu.getProgramCounter();
@@ -381,6 +390,32 @@ public class GUI extends Application {
             		System.out.println("Nothing found in PC");
          }
     }
+
+    // 🔹 Refresh GUI fields after IPL load or reset
+    private void refreshGUIAfterIPL() {
+        // Update GPR values
+        for (int i = 0; i < 4; i++) {
+            short val = cpu.getGPR((short) i);
+            gprFields[i].setText(String.valueOf(val));
+        }
+
+        // Update IXR values
+        for (int i = 0; i < 3; i++) {
+            short val = cpu.getIXR((short) (i + 1));
+            ixrFields[i].setText(String.valueOf(val));
+        }
+
+        // Update key registers
+        pcField.setText(String.valueOf(cpu.getProgramCounter()));
+        marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
+        mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
+        irField.setText("0");
+        ccField.setText(String.valueOf(cpu.getConditionCode()));
+
+        // Log confirmation for debugging
+        System.out.println("[GUI] Registers updated after IPL load");
+    }
+
 
     public static void main(String[] args) {
         launch(args);

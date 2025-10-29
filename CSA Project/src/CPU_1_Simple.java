@@ -69,23 +69,38 @@ public class CPU_1_Simple extends Transformer {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
                 if (line.isEmpty()) continue;
-                
-                // Parse load file format: address value (octal)
+
+                // ✅ Handle HALT (pure binary line like 0000000000000000)
+                if (line.matches("[01]{16}")) {
+                    try {
+                        int haltValue = Integer.parseInt(line, 2);
+                        int nextAddr = memory.data.size();
+                        memory.setValue(nextAddr, haltValue);
+                        System.out.println("Loaded HALT at memory[" + nextAddr + "] = " + haltValue);
+                    } catch (Exception e) {
+                        System.out.println("Error parsing HALT line: " + e.getMessage());
+                    }
+                    continue;
+                }
+
+                // Normal "address value" pair (octal)
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 2) {
                     try {
-                        int addr = Integer.parseInt(parts[0], 8); // Octal address
-                        int value = Integer.parseInt(parts[1], 8); // Octal value
-                        if (addr >= 0 && addr < 32) {
+                        int addr = Integer.parseInt(parts[0], 8);
+                        int value = Integer.parseInt(parts[1], 8);
+                        if (addr >= 0 && addr < 4096) {
                             memory.setValue(addr, value);
+                            System.out.println("Loaded memory[" + addr + "] = " + value);
                         }
                     } catch (NumberFormatException e) {
-                        return false;
+                        System.out.println("Error parsing line: " + line);
                     }
                 }
             }
             return true;
         } catch (FileNotFoundException e) {
+            System.out.println("ROM file not found: " + file.getAbsolutePath());
             return false;
         }
     }
