@@ -8,7 +8,7 @@ public class Transformer {
             bin[i] = (char) (temp % 2 + '0');
             temp /= 2;
         }
-        System.out.println("transformer:"+new String(bin)+"\n");
+//        System.out.println("transformer:"+new String(bin)+"\n");
         return bin;
     }
 
@@ -28,8 +28,8 @@ public class Transformer {
         for (int i = 0; i < count; i++) {
         	out += (short) (bin[count-1-i] - '0')*Math.pow(2, i);
         }
-        System.out.println("binary:"+new String(bin));
-        System.out.println("decimal:"+out);
+//        System.out.println("binary:"+new String(bin));
+//        System.out.println("decimal:"+out);
         return out;
     }
         

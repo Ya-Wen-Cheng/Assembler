@@ -167,6 +167,7 @@ public class GUI extends Application {
 	        		Integer val = memory.getValue(address);
 	        		cpu.setMemoryBufferRegister(val.shortValue());
 	        		mbrField.setText(Short.toString(val.shortValue()));
+	        		System.out.println("memory ["+address+"] = "+val);
         		}else {
         			System.out.println("Invalid memory address: " + address + " (must be 0-31)");
         		}
@@ -185,7 +186,7 @@ public class GUI extends Application {
         		marField.setText(Short.toString(address));
         		short mbrVal = Short.parseShort(mbrField.getText());
         		memory.setValue(address, mbrVal);
-        		System.out.println("Memory address "+address+" is set to "+memory.getValue(address));
+        		System.out.println("Loaded memory["+address+"] = "+memory.getValue(address));
         		
         		
         		
@@ -224,7 +225,7 @@ public class GUI extends Application {
         Button halt = new Button("Halt");
         halt.setOnAction(e -> {
             haltRequested = true;
-            System.out.println("Halt requested - program will stop at next instruction");
+            System.out.println("Halted - program will stop at next instruction");
         });
         
         Button ipl = new Button("IPL"); 
@@ -241,7 +242,6 @@ public class GUI extends Application {
             if (selectedFile != null) {
                 if (cpu.loadROM(selectedFile, memory)) {
                     System.out.println("ROM loaded successfully from: " + selectedFile.getName());
-                    updateRegisterDisplay();
                     refreshGUIAfterIPL();
 
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -254,7 +254,6 @@ public class GUI extends Application {
                 }
             } else {
                 System.out.println("System Reset (no ROM file selected)");
-                updateRegisterDisplay();
                 refreshGUIAfterIPL();
             }
         });
@@ -275,7 +274,9 @@ public class GUI extends Application {
 	            if (machineCode != null) {
 	                // Execute the instruction based on opcode
 	                executeInstruction(machineCode);
+//	                cpu.setProgramCounter(pc++);
 	                updateRegisterDisplay();
+//	                System.out.println("PC is now: "+pc++);
 	            }
     		}
     	}catch(BlankCharArrayException exp) {
@@ -327,7 +328,6 @@ public class GUI extends Application {
             System.out.println("Program stopped: Maximum instruction limit reached");
         }
         
-        updateRegisterDisplay();
     }
     
     // Execute a single instruction based on machine code
@@ -379,16 +379,20 @@ public class GUI extends Application {
             ixrFields[i].setText(String.valueOf(value));
         }
         
-        // Update other registers
+        // Update PC
         try {
-	        pcField.setText(String.valueOf(cpu.getProgramCounter()));
-	        marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
-	        mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
-	        irField.setText("0"); // Instruction register not directly accessible
-	        ccField.setText(String.valueOf(cpu.getConditionCode()));
-        }catch(BlankCharArrayException exp) {
-            		System.out.println("Nothing found in PC");
-         }
+        	pcField.setText(String.valueOf(cpu.getProgramCounter()));
+        	marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
+        	mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
+        }catch(BlankCharArrayException exp) {}
+        
+        
+        try {
+            irField.setText("0");
+            ccField.setText(String.valueOf(cpu.getConditionCode()));
+        }catch(Exception exp) {
+        	System.out.println(exp.getMessage());
+        }
     }
 
     // 🔹 Refresh GUI fields after IPL load or reset
@@ -405,12 +409,21 @@ public class GUI extends Application {
             ixrFields[i].setText(String.valueOf(val));
         }
 
-        // Update key registers
-        pcField.setText(String.valueOf(cpu.getProgramCounter()));
-        marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
-        mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
-        irField.setText("0");
-        ccField.setText(String.valueOf(cpu.getConditionCode()));
+     // Update PC
+        try {
+        	pcField.setText(String.valueOf(cpu.getProgramCounter()));
+        	marField.setText(String.valueOf(cpu.getMemoryAddressValue()));
+        	mbrField.setText(String.valueOf(cpu.getMemoryBufferValue()));
+        }catch(BlankCharArrayException exp) {}
+        
+        
+        try {
+            irField.setText("0");
+            ccField.setText(String.valueOf(cpu.getConditionCode()));
+        }catch(Exception exp) {
+        	System.out.println(exp.getMessage());
+        }
+        
 
         // Log confirmation for debugging
         System.out.println("[GUI] Registers updated after IPL load");
