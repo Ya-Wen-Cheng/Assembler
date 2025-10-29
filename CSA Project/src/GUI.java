@@ -190,7 +190,7 @@ public class GUI extends Application {
         		
         		
         	
-        	}catch(BlankCharArrayException exp) {
+        	}catch(BlankCharArrayException exp) { 
         		System.out.println("Nothing is found in MAR");
         	}catch(NumberFormatException exp) {
         		System.out.println("MBR field is empty");
