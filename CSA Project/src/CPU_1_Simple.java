@@ -175,7 +175,7 @@ public class CPU_1_Simple extends Transformer {
 
     // Register getter methods
     public short getMemoryAddressValue() throws BlankCharArrayException {
-    		return BinaryToDecimal(memoryAddressRegister, 12);  
+    		return BinaryToDecimal(memoryAddressRegister, 12); 
     }
 
     public short getMemoryBufferValue() throws BlankCharArrayException{

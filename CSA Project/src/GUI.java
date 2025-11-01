@@ -164,7 +164,7 @@ public class GUI extends Application {
             // Load value from memory address (MAR) into MBR
         	try {
         		short address = cpu.getMemoryAddressValue();
-	        	if (address >= 0 && address < 32) {
+	        	if (address >= 0 && address < 4096) {
 	        		marField.setText(Short.toString(address));
 	        		Integer val = memory.getValue(address);
 	        		cpu.setMemoryBufferRegister(val.shortValue());
@@ -181,17 +181,30 @@ public class GUI extends Application {
         });
         
         Button load_plus = new Button("Load+");
-        load.setOnAction(e -> {
-            // Load instruction from memory address
-            short marVal = cpu.getMemoryAddressValue();
-            if (marVal >= 0 && marVal < 4096) {
-                Integer machineCode = memory.getValue(marVal);
-                if (machineCode != null) {
-                    executeInstruction(machineCode);
-                    updateRegisterDisplay();
-                }
-            }
-            cpu.setMemoryAddressRegister((short)(marVal+1));
+        load_plus.setOnAction(e -> {
+        	// Load value from memory address (MAR) into MBR
+        	try {
+        		short marVal = cpu.getMemoryAddressValue();
+	        	if (marVal >= 0 && marVal < 4096) {
+	        		Short next_memory = (short)(marVal+1);
+	        		cpu.setMemoryAddressRegister(next_memory);
+	        		marField.setText(Short.toString(next_memory));
+	        		Integer val = memory.getValue(next_memory);
+	        		cpu.setMemoryBufferRegister(val.shortValue());
+	        		mbrField.setText(Short.toString(val.shortValue()));
+	        		System.out.println("memory ["+next_memory+"] = "+val);
+	        		updateRegisterDisplay();
+	        		
+        		}else {
+        			System.out.println("Invalid memory address: " + marVal + " (must be 0-31)");
+        		}
+        	}catch(BlankCharArrayException exp) {
+        		System.out.println("Nothing is found in MAR");
+        	}catch(NullPointerException exp) {
+        		System.out.println("Nothing is found in memory");
+        	}
+            
+        	
         });
 
         Button store = new Button("Store");
@@ -216,18 +229,25 @@ public class GUI extends Application {
         });
         
         Button store_plus = new Button("Store+");
-        store.setOnAction(e -> {
-            // Store instruction - store MBR value to memory at MAR address
-            short marVal = cpu.getMemoryAddressValue();
-            short mbrVal = cpu.getMemoryBufferValue();
-            if (marVal >= 0 && marVal < 4096) {
-                memory.setValue(marVal, mbrVal);
-                System.out.println("Stored value " + mbrVal + " to memory address " + marVal);
-                updateRegisterDisplay();
-            } else {
-                System.out.println("Invalid memory address: " + marVal);
-            }
-            cpu.setMemoryAddressRegister((short)(marVal+1));
+        store_plus.setOnAction(e -> {
+        	try {
+        		// memory address and value to be stored
+        		short marVal = cpu.getMemoryAddressValue();
+        		short next_memory = (short)(marVal+1);
+        		cpu.setMemoryAddressRegister(next_memory);
+        		marField.setText(Short.toString(next_memory));
+        		short mbrVal = Short.parseShort(mbrField.getText());
+        		memory.setValue(next_memory, mbrVal);
+        		System.out.println("Loaded memory["+next_memory+"] = "+memory.getValue(marVal));
+        		updateRegisterDisplay();
+        		
+        	
+        	}catch(BlankCharArrayException exp) { 
+        		System.out.println("Nothing is found in MAR");
+        	}catch(NumberFormatException exp) {
+        		System.out.println("MBR field is empty");
+        	}
+            
         });
         
 
@@ -363,7 +383,7 @@ public class GUI extends Application {
     }
     
     // Execute a single instruction based on machine code
-    private void executeInstruction(int machineCode) throws BlankCharArrayException {
+    private void executeInstruction(int machineCode) {
 
         int opcode = (machineCode >>> 10) & 0x3F;
         int r = (machineCode >>> 8) & 0x3;
