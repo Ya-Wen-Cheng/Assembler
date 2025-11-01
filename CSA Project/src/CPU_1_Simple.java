@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import javafx.stage.FileChooser; // Commented out for compilation without JavaFX
 
+
 public class CPU_1_Simple extends Transformer {
 
     static final short LOAD_REGISTER_OPCODE = 0x01;
@@ -26,8 +27,8 @@ public class CPU_1_Simple extends Transformer {
     public char[] instructionRegister;
     public char[] memoryFaultRegister;
     public char[] memoryBufferRegister;
-    public char[] memoryAddressRegister;
-    public char[] programCounter;
+    public char[] memoryAddressRegister = new char[12];
+    public char[] programCounter = new char[12];
 
     public CPU_1_Simple() {
         // Initialize register objects using existing classes
@@ -69,23 +70,41 @@ public class CPU_1_Simple extends Transformer {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
                 if (line.isEmpty()) continue;
-                
-                // Parse load file format: address value (octal)
+
+                // ✅ Handle HALT (pure binary line like 0000000000000000)
+                if (line.matches("[01]{16}")) {
+                    try {
+                        int haltValue = Integer.parseInt(line, 2);
+                        int nextAddr = memory.data.size();
+                        memory.setValue(nextAddr, haltValue);
+                        System.out.println("Loaded HALT at memory[" + nextAddr + "] = " + haltValue);
+                    } catch (Exception e) {
+                        System.out.println("Error parsing HALT line: " + e.getMessage());
+                    }
+                    continue;
+                }
+
+                // Normal "address value" pair (octal)
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 2) {
                     try {
+
                         int addr = Integer.parseInt(parts[0], 8); // Octal address
                         int value = Integer.parseInt(parts[1], 8); // Octal value
+
+
                         if (addr >= 0 && addr < 4096) {
                             memory.setValue(addr, value);
+                            System.out.println("Loaded memory[" + addr + "] = " + value);
                         }
                     } catch (NumberFormatException e) {
-                        return false;
+                        System.out.println("Error parsing line: " + line);
                     }
                 }
             }
             return true;
         } catch (FileNotFoundException e) {
+            System.out.println("ROM file not found: " + file.getAbsolutePath());
             return false;
         }
     }
@@ -116,6 +135,7 @@ public class CPU_1_Simple extends Transformer {
     public void setGPR(short reg, short value) {
         try {
             generalRegister.setValue(reg, value);
+            System.out.println("Set GPR "+reg+" to "+ value);
         } catch (IllegalArgumentException e) {
             System.out.println("ERROR: Invalid GPR register number " + reg + " - must be 0-3");
             System.exit(1);
@@ -125,6 +145,7 @@ public class CPU_1_Simple extends Transformer {
     public void setIXR(short ix, short value) {
         try {
             indexRegister.setValue(ix, value);
+            System.out.println("Set IXR "+ix+" to "+ value);
         } catch (IllegalArgumentException e) {
             System.out.println("ERROR: Invalid IXR register number " + ix + " - must be 1-3");
             System.exit(1);
@@ -153,11 +174,11 @@ public class CPU_1_Simple extends Transformer {
     }
 
     // Register getter methods
-    public short getMemoryAddressValue() {
-        return BinaryToDecimal(memoryAddressRegister, 12);
+    public short getMemoryAddressValue() throws BlankCharArrayException {
+    		return BinaryToDecimal(memoryAddressRegister, 12);  
     }
 
-    public short getMemoryBufferValue() {
+    public short getMemoryBufferValue() throws BlankCharArrayException{
         return BinaryToDecimal(memoryBufferRegister, 16);
     }
     
@@ -179,7 +200,7 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    public short getProgramCounter() {
+    public short getProgramCounter() throws BlankCharArrayException{
         return BinaryToDecimal(programCounter, 12);
     }
     
@@ -192,14 +213,17 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    public short getMemoryFaultRegister() {
+    public short getMemoryFaultRegister() throws BlankCharArrayException{
         return BinaryToDecimal(memoryFaultRegister, 4);
     }
 
     // Memory access with bounds checking - Display errors and stop execution
-    public void Execute(Memory memory) {
+    public void Execute(Memory memory) throws BlankCharArrayException{
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
+
         if (marVal >= 0 && marVal < 4096) {
+
+        System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
             Integer val = memory.getValue(marVal);
             if (val != null) {
                 DecimalToBinary(val.shortValue(), memoryBufferRegister, 16);
@@ -216,7 +240,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDR instruction: Load Register from memory
-    public void ExecuteLDR(short r, short x, short address, Memory memory) {
+    public void ExecuteLDR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -292,7 +316,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDX instruction: Load Index register
-    public void ExecuteLDX(short x, short address, Memory memory) {
+    public void ExecuteLDX(short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address
         short effectiveAddress = address;
         
@@ -336,7 +360,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute AMR instruction: Add Memory to Register
-    public void ExecuteAMR(short r, short x, short address, Memory memory) {
+    public void ExecuteAMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -365,7 +389,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute SMR instruction: Subtract Memory from Register
-    public void ExecuteSMR(short r, short x, short address, Memory memory) {
+    public void ExecuteSMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -410,7 +434,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Main instruction execution method
-    public void ExecuteInstruction(int machineCode, Memory memory) {
+    public void ExecuteInstruction(int machineCode, Memory memory) throws BlankCharArrayException{
         int opcode = (machineCode >>> 10) & 0x3F;
         int r = (machineCode >>> 8) & 0x3;
         int x = (machineCode >>> 6) & 0x3;
@@ -511,7 +535,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Test runner method - executes test file and shows results
-    public void runTest(String testFileName) {
+    public void runTest(String testFileName) throws BlankCharArrayException{
         System.out.println("=== CPU_1_Simple Test Execution ===");
         System.out.println("Test File: " + testFileName);
         System.out.println();
@@ -605,7 +629,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Static method to run test
-    public static void main(String[] args) {
+    public static void main(String[] args) throws BlankCharArrayException{
         CPU_1_Simple cpu = new CPU_1_Simple();
         
         // Default to the existing CPU instruction test file
