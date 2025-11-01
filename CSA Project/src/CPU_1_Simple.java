@@ -203,7 +203,7 @@ public class CPU_1_Simple extends Transformer {
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
         System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
         if (marVal >= 0 && marVal < 32) {
-            Integer val = memory.getValue(marVal);
+            Integer val = memory.readFromCache(marVal);
             if (val != null) {
                 DecimalToBinary(val.shortValue(), memoryBufferRegister, 16);
             } else {
@@ -263,7 +263,7 @@ public class CPU_1_Simple extends Transformer {
             setMemoryAddressRegister(effectiveAddress);
             
             // Store MBR to memory
-            memory.setValue(effectiveAddress, value);
+            memory.writeToCache(effectiveAddress, value);
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -303,8 +303,8 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
-            Execute(memory);
-            
+            Integer machineCode = memory.getValue(pc);
+
             // Load MBR into index register x
             short value = getMemoryBufferValue();
             setIXR(x, value);
@@ -329,7 +329,7 @@ public class CPU_1_Simple extends Transformer {
             setMemoryAddressRegister(effectiveAddress);
             
             // Store MBR to memory
-            memory.setValue(effectiveAddress, value);
+            memory.writeToCache(effectiveAddress, value);
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
