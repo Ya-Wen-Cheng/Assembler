@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import java.io.File;
-
+	
 public class GUI extends Application {
 
     private CPU_1_Simple cpu = new CPU_1_Simple();
@@ -152,7 +152,7 @@ public class GUI extends Application {
         load.setOnAction(e -> {
             // Load instruction from memory address
             short marVal = cpu.getMemoryAddressValue();
-            if (marVal >= 0 && marVal < 32) {
+            if (marVal >= 0 && marVal < 4096) {
                 Integer machineCode = memory.getValue(marVal);
                 if (machineCode != null) {
                     executeInstruction(machineCode);
@@ -160,13 +160,27 @@ public class GUI extends Application {
                 }
             }
         });
+        
+        Button load_plus = new Button("Load+");
+        load.setOnAction(e -> {
+            // Load instruction from memory address
+            short marVal = cpu.getMemoryAddressValue();
+            if (marVal >= 0 && marVal < 4096) {
+                Integer machineCode = memory.getValue(marVal);
+                if (machineCode != null) {
+                    executeInstruction(machineCode);
+                    updateRegisterDisplay();
+                }
+            }
+            cpu.setMemoryAddressRegister((short)(marVal+1));
+        });
 
         Button store = new Button("Store");
         store.setOnAction(e -> {
             // Store instruction - store MBR value to memory at MAR address
             short marVal = cpu.getMemoryAddressValue();
             short mbrVal = cpu.getMemoryBufferValue();
-            if (marVal >= 0 && marVal < 32) {
+            if (marVal >= 0 && marVal < 4096) {
                 memory.setValue(marVal, mbrVal);
                 System.out.println("Stored value " + mbrVal + " to memory address " + marVal);
                 updateRegisterDisplay();
@@ -174,6 +188,22 @@ public class GUI extends Application {
                 System.out.println("Invalid memory address: " + marVal);
             }
         });
+        
+        Button store_plus = new Button("Store+");
+        store.setOnAction(e -> {
+            // Store instruction - store MBR value to memory at MAR address
+            short marVal = cpu.getMemoryAddressValue();
+            short mbrVal = cpu.getMemoryBufferValue();
+            if (marVal >= 0 && marVal < 4096) {
+                memory.setValue(marVal, mbrVal);
+                System.out.println("Stored value " + mbrVal + " to memory address " + marVal);
+                updateRegisterDisplay();
+            } else {
+                System.out.println("Invalid memory address: " + marVal);
+            }
+            cpu.setMemoryAddressRegister((short)(marVal+1));
+        });
+        
 
         Button run = new Button("Run");
         run.setOnAction(e -> {
@@ -221,7 +251,7 @@ public class GUI extends Application {
             }
         });
 
-        controlButtons.getChildren().addAll(load, store, run, step, halt, ipl);
+        controlButtons.getChildren().addAll(load, load_plus, store, store_plus, run, step, halt, ipl);
         bottom.setLeft(input);
         bottom.setRight(controlButtons);
 
@@ -231,7 +261,7 @@ public class GUI extends Application {
     // Step through one instruction at a time
     private void stepOneInstruction() {
         short pc = cpu.getProgramCounter();
-        if (pc >= 0 && pc < 32) {
+        if (pc >= 0 && pc < 4096) {
             Integer machineCode = memory.getValue(pc);
             if (machineCode != null) {
                 // Execute the instruction based on opcode
@@ -249,7 +279,7 @@ public class GUI extends Application {
         
         while (instructionCount < maxInstructions && !haltRequested) {
             short pc = cpu.getProgramCounter();
-            if (pc < 0 || pc >= 32) {
+            if (pc < 0 || pc >= 4096) {
                 break; // Out of bounds
             }
             
