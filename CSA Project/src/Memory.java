@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 
 class Memory extends Storage {
-	private static final int MAX_ADDRESS = 32;
+	private static final int MAX_ADDRESS = 4096;
 	
     // Set value at a specific memory address, with bounds checking
     @Override
