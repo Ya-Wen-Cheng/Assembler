@@ -1,0 +1,191 @@
+; --- Data Section ---
+NUMS:       .BLOCK 20         ; Reserve space for 20 integers starting at address 50
+ZERO:       .WORD 0           ; Constant zero at address 70
+TWENTY:     .WORD 20          ; Constant 20 at address 71
+TARGET:     .WORD 0           ; Target number input by user (address 72)
+MIN_DIFF:   .WORD 32767       ; Initial minimum difference (max 16-bit signed) (address 73)
+CLOSEST:    .WORD 0           ; Closest number found (address 74)
+
+TEMP:       .WORD 0           ; Temporary storage (address 75)
+TEMP2:      .WORD 0           ; Secondary temporary storage (address 76)
+
+; --- Program Start ---
+START:
+    ; Initialize registers
+    LDX 1, NUMS             ; X1 points to the start of NUMS array
+    LDX 2, ZERO             ; X2 = 0 (offset index)
+    LDR R3, 0, TWENTY       ; R3 = 20 (counter for reading 20 integers)
+    
+READ_LOOP:
+    JZ R3, 0, READ_TARGET   ; If R3 == 0, all 20 numbers read; jump to read target number
+    JMA READ_INTEGER        ; Else jump to read one integer
+    
+READ_INTEGER:
+    ; R1 used to assemble the integer from chars
+    LDR R1, 0, ZERO         ; Clear R1 = 0
+    LDR R2, 0, ZERO         ; R2 = negative flag (0 = positive, 1 = negative)
+    
+READ_CHAR_LOOP:
+    IN R0, 0                ; Read one character from keyboard to R0
+    
+    ; Check if character is '-'
+    LDR R1, 0, ZERO
+    AIR R1, 45              ; ASCII '-'
+    TRR R0, R1
+    JCC 0, SET_NEG          ; If equal (CC=0), set negative flag
+    
+    ; Check if character is '0' or less (invalid)
+    LDR R1, 0, ZERO
+    AIR R1, 48              ; ASCII '0'
+    TRR R0, R1
+    JCC 4, END_INT          ; If R0 < '0' (CC=4), end integer input
+    
+    ; Check if character is '9' or greater (invalid)
+    LDR R1, 0, ZERO
+    AIR R1, 57              ; ASCII '9'
+    TRR R0, R1
+    JCC 2, END_INT          ; If R0 > '9' (CC=2), end integer input
+    
+    ; Convert ASCII digit to number
+    SIR R0, 48              ; R0 = R0 - '0'
+    
+    ; R1 = R1 * 10 + R0
+    STR R1, 0, TEMP         ; Save old R1 in TEMP
+    SRC R1, 3, L, A         ; R1 * 8
+    LDR R1, 0, TEMP         ; Reload old R1
+    SRC R1, 1, L, A         ; R1 * 2
+    AMR R1, 0, TEMP         ; R1 = 8R1 + 2R1 = 10R1
+    AMR R1, 0, R0           ; Add new digit
+    
+    JMA READ_CHAR_LOOP      ; Continue reading chars
+    
+SET_NEG:
+    LDR R2, 0, ZERO
+    AIR R2, 1               ; Set negative flag = 1
+    JMA READ_CHAR_LOOP      ; Continue reading chars
+    
+END_INT:
+    ; If negative flag set, convert to two's complement
+    JZ R2, 0, STORE_INT
+    NOT R1
+    AIR R1, 1
+    
+STORE_INT:
+    ; Store integer R1 into NUMS[X2]
+    LDX 1, NUMS             ; Base address
+    LDX 2, ZERO             ; Reset index X2
+    LDR R0, 0, TEMP2        ; Load current index from TEMP2
+    AMR R0, 0, ZERO
+    STR R0, 0, TEMP2
+    
+    STR R1, 1, 0(X1)        ; Store R1 at address X1 + X2 offset
+    
+    ; Increment index X2
+    LDX 2, TEMP2
+    AIR R0, 1
+    STX 2, TEMP2
+    
+    ; Decrement counter R3
+    SIR R3, 1
+    JMA READ_LOOP           ; Continue reading integers
+    
+READ_TARGET:
+    ; Read the target number (same method as above)
+    LDR R1, 0, ZERO
+    LDR R2, 0, ZERO
+    
+READ_TARGET_CHAR_LOOP:
+    IN R0, 0
+    LDR R3, 0, ZERO
+    AIR R3, 45
+    TRR R0, R3
+    JCC 3, SET_NEG_TARGET
+    
+    LDR R3, 0, ZERO
+    AIR R3, 48
+    TRR R0, R3
+    JCC 4, END_TARGET_INT
+    
+    LDR R3, 0, ZERO
+    AIR R3, 57
+    TRR R0, R3
+    JCC 2, END_TARGET_INT
+    
+    SIR R0, 48
+    STR R1, 0, TEMP
+    SRC R1, 3, L, A
+    LDR R3, 0, TEMP
+    SRC R3, 1, L, A
+    AMR R1, 0, TEMP
+    AMR R1, 0, R0
+    JMA READ_TARGET_CHAR_LOOP
+    
+SET_NEG_TARGET:
+    LDR R2, 0, ZERO
+    AIR R2, 1
+    JMA READ_TARGET_CHAR_LOOP
+    
+END_TARGET_INT:
+    JZ R2, 0, STORE_TARGET
+    NOT R1
+    AIR R1, 1
+    
+STORE_TARGET:
+    STR R1, 0, TARGET
+    
+    ; Initialize search for closest number
+    LDX 1, NUMS
+    LDR R3, 0, TWENTY
+    LDR R0, 0, TARGET       ; Load target value into R0
+    STR R0, 0, TEMP2        ; Save target in TEMP2
+    LDR R1, 0, ZERO         ; R1 = closest number (initial 0)
+    LDR R2, 0, MIN_DIFF     ; R2 = minimum difference (initial large value)
+    
+SEARCH_LOOP:
+    JZ R3, 0, PRINT_RESULT
+    
+    LDR R4, 1, 0(X1)        ; Load NUMS[i] into R4
+    
+    ; Compute difference = ABS(R4 - TARGET)
+    LDR R0, 0, TEMP2        ; R0 = TARGET
+    SMR R4, 0, TEMP2        ; R4 = R4 - TARGET
+    
+    ; If negative, convert to absolute value
+    TRR R4, R4
+    JCC 3, ABS_NEGATE
+    JMA COMPARE_DIFF
+    
+ABS_NEGATE:
+    NOT R4
+    AIR R4, 1
+    
+COMPARE_DIFF:
+    TRR R4, R2              ; Compare diff with current min diff
+    JCC 4, UPDATE_CLOSEST   ; If diff < min_diff, update closest
+    JMA NEXT_SEARCH
+    
+UPDATE_CLOSEST:
+    STR R4, 0, MIN_DIFF
+    LDR R1, 1, 0(X1)
+    STR R1, 0, CLOSEST
+    
+NEXT_SEARCH:
+    ; Increment pointer X1
+    LDX 1, TEMP
+    AIR R0, 1
+    STX 1, TEMP
+    
+    ; Decrement counter
+    SIR R3, 1
+    JMA SEARCH_LOOP
+    
+PRINT_RESULT:
+    ; Output target value
+    LDR R1, 0, TARGET
+    OUT R1, 1
+    
+    ; Output closest value
+    LDR R1, 0, CLOSEST
+    OUT R1, 1
+    
+    RFS 0                   ; Terminate program
