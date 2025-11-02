@@ -3,6 +3,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import javafx.stage.FileChooser;
+import devices.KeyboardDevice;
+import devices.PrinterDevice;
+
 
 public class CPU_1_Simple extends Transformer {
 
@@ -16,11 +19,41 @@ public class CPU_1_Simple extends Transformer {
     static final short LOAD_INDEX_OPCODE = 0x041;
     static final short STORE_INDEX_OPCODE = 0x042;
     static final short HALT_OPCODE = 0x00;
+    // Additional opcodes (match InstructionEncoder values)
+    static final short JZ_OPCODE  = 0x08;  // 010 octal
+    static final short JNE_OPCODE = 0x09;  // 011 octal
+    static final short JCC_OPCODE = 0x0A;  // 012 octal
+    static final short JMA_OPCODE = 0x0B;  // 013 octal
+    static final short JSR_OPCODE = 0x0C;  // 014 octal
+    static final short RFS_OPCODE = 0x0D;  // 015 octal
+    static final short SOB_OPCODE = 0x0E;  // 016 octal
+    static final short JGE_OPCODE = 0x0F;  // 017 octal
+
+    static final short SRC_OPCODE = 0x19;  // 031 octal -> 25 dec -> 0x19
+    static final short RRC_OPCODE = 0x1A;  // 032 octal -> 26 dec
+
+    static final short IN_OPCODE  = 0x31;  // 061 octal -> 49 dec
+    static final short OUT_OPCODE = 0x32;  // 062 octal -> 50 dec
+    static final short CHK_OPCODE = 0x33;  // 063 octal -> 51 dec
+
+    static final short MLT_OPCODE = 0x38;  // 070 octal -> 56 dec
+    static final short DVD_OPCODE = 0x39;  // 071 octal -> 57 dec
+    static final short TRR_OPCODE = 0x3A;  // 072 octal -> 58 dec
+    static final short AND_OPCODE = 0x3B;  // 073 octal -> 59 dec
+    static final short ORR_OPCODE = 0x3C;  // 074 octal -> 60 dec
+    static final short NOT_OPCODE = 0x3D;  // 075 octal -> 61 dec
+
+    static final short TRAP_OPCODE = 0x18; // 030 octal -> 24 dec
 
     // Use existing register classes
     public GeneralRegister generalRegister;
     public IndexRegister indexRegister;
     public ConditionRegister conditionRegister;
+    // Devices
+    public KeyboardDevice keyboard;
+    public PrinterDevice printer;
+    public devices.CardReaderDevice cardReader;
+    public devices.ConsoleRegisterDevice consoleRegs;
     
     // Keep char arrays for compatibility with existing code
     public char[] instructionRegister;
@@ -42,6 +75,11 @@ public class CPU_1_Simple extends Transformer {
         memoryAddressRegister = new char[12];
         programCounter = new char[12];
         ResetRegisters();
+    // Initialize devices
+    keyboard = new KeyboardDevice();
+    printer = new PrinterDevice();
+    cardReader = new devices.CardReaderDevice();
+    consoleRegs = new devices.ConsoleRegisterDevice();
     }
 
     private void ResetRegisters() {
@@ -303,6 +341,7 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
+            short pc = getProgramCounter();
             Integer machineCode = memory.getValue(pc);
 
             // Load MBR into index register x
@@ -469,6 +508,42 @@ public class CPU_1_Simple extends Transformer {
                 // SIR - Subtract Immediate from Register
                 ExecuteSIR((short) r, (short) address, memory);
                 break;
+            
+            case JZ_OPCODE:
+            case JNE_OPCODE:
+            case JCC_OPCODE:
+            case JMA_OPCODE:
+            case JSR_OPCODE:
+            case RFS_OPCODE:
+            case SOB_OPCODE:
+            case JGE_OPCODE:
+                // Simple branch/stack/resume helpers
+                ExecuteBranch(opcode, (short) r, (short) x, (short) address, memory);
+                break;
+
+            case SRC_OPCODE:
+            case RRC_OPCODE:
+                ExecuteShiftRotate(opcode, (short) r, (short) ((machineCode >>> 4) & 0xF), (short) ((machineCode >>> 3) & 0x1), (short) ((machineCode >>> 2) & 0x1));
+                break;
+
+            case IN_OPCODE:
+            case OUT_OPCODE:
+            case CHK_OPCODE:
+                ExecuteIO(opcode, (short) r, (short) (machineCode & 0xFF));
+                break;
+
+            case MLT_OPCODE:
+            case DVD_OPCODE:
+            case TRR_OPCODE:
+            case AND_OPCODE:
+            case ORR_OPCODE:
+            case NOT_OPCODE:
+                ExecuteArithmeticLogical(opcode, (short) r, (short) x);
+                break;
+
+            case TRAP_OPCODE:
+                ExecuteTRAP((short) ((machineCode >>> 6) & 0xF));
+                break;
                 
             default:
                 // Unknown opcode - display error and stop execution
@@ -482,6 +557,253 @@ public class CPU_1_Simple extends Transformer {
         if (opcode != HALT_OPCODE) {
             short pc = getProgramCounter();
             setProgramCounter((short) (pc + 1));
+        }
+    }
+
+    // Branch and control instructions
+    public void ExecuteBranch(int opcode, short r, short x, short address, Memory memory) {
+        short pc = getProgramCounter();
+        boolean take = false;
+
+        switch (opcode) {
+            case JZ_OPCODE:
+                take = (getConditionCode() == 0);
+                break;
+            case JNE_OPCODE:
+                take = (getConditionCode() != 0);
+                break;
+            case JCC_OPCODE:
+                // Use condition code bits (simple non-zero)
+                take = (getConditionCode() != 0);
+                break;
+            case JMA_OPCODE:
+                // Jump always
+                take = true;
+                break;
+            case JSR_OPCODE:
+                // Save return address in R0 and jump
+                setGPR((short)0, (short)(pc + 1));
+                take = true;
+                break;
+            case RFS_OPCODE:
+                // Return from subroutine: restore R0 into PC
+                setProgramCounter(getGPR((short)0));
+                return;
+            case SOB_OPCODE:
+                // Decrement register r and branch if > 0
+                short val = getGPR(r);
+                val = (short)(val - 1);
+                setGPR(r, val);
+                take = (val > 0);
+                break;
+            case JGE_OPCODE:
+                // Branch if GPR[r] >= 0
+                take = (getGPR(r) >= 0);
+                break;
+            default:
+                System.out.println("ERROR: Unhandled branch opcode " + opcode);
+                System.exit(1);
+        }
+
+        if (take) {
+            short ixVal = 0;
+            if (x > 0 && x <= 3) ixVal = getIXR(x);
+            short effective = (short)(address + ixVal);
+            setProgramCounter(effective);
+        }
+    }
+
+    // Shift/rotate
+    public void ExecuteShiftRotate(int opcode, short r, short count, short lr, short al) {
+        // Operate on GPR r; lr=left/right, al=arithmetic/logical
+        short val = getGPR(r);
+        int c = count & 0xF;
+        if (c == 0) return;
+
+        if (opcode == SRC_OPCODE) {
+            // Shift/right/combined: lr==1 => right, lr==0 => left
+            if (lr == 1) {
+                // Right shift
+                if (al == 1) { // arithmetic
+                    val = (short)(val >> c);
+                } else {
+                    val = (short)((val & 0xFFFF) >>> c);
+                }
+            } else {
+                // Left shift
+                val = (short)((val & 0xFFFF) << c);
+            }
+        } else if (opcode == RRC_OPCODE) {
+            // Rotate right/left: use unsigned rotations
+            int u = val & 0xFFFF;
+            if (lr == 1) {
+                // Rotate right
+                int res = ((u >>> c) | (u << (16 - c))) & 0xFFFF;
+                val = (short) res;
+            } else {
+                // Rotate left
+                int res = ((u << c) | (u >>> (16 - c))) & 0xFFFF;
+                val = (short) res;
+            }
+        }
+
+        setGPR(r, val);
+    }
+
+    // Simple IO handlers (stubbed to print actions)
+    public void ExecuteIO(int opcode, short r, short device) {
+        // Centralized device permission checks and routing.
+        // Allowed mappings (strict):
+        //  IN:  DEVID 0 (keyboard), 2 (card reader), 3..31 (console regs)
+        //  OUT: DEVID 1 (printer), 3..31 (console regs)
+        //  CHK: DEVID 0 (keyboard), 1 (printer), 2 (card reader), 3..31 (console regs)
+
+        // Validate device id range
+        if (device < 0 || device > 31) {
+            System.out.println("ERROR: Invalid device id " + device);
+            return;
+        }
+
+        switch (opcode) {
+            case IN_OPCODE:
+                if (device == 0) {
+                    int ch = keyboard.readChar();
+                    setGPR(r, (short)(ch >= 0 ? ch : -1));
+                } else if (device == 2) {
+                    int ch = cardReader.readChar();
+                    setGPR(r, (short)(ch >= 0 ? ch : -1));
+                } else if (device >= 3 && device <= 31) {
+                    int ch = consoleRegs.readChar();
+                    setGPR(r, (short)(ch >= 0 ? ch : -1));
+                } else {
+                    System.out.println("ERROR: IN not allowed for device " + device + ". Allowed: 0,2,3..31");
+                    setGPR(r, (short)-1);
+                }
+                break;
+
+            case OUT_OPCODE:
+                if (device == 1) {
+                    int val = getGPR(r);
+                    printer.write(String.valueOf(val));
+                } else if (device >= 3 && device <= 31) {
+                    int val = getGPR(r);
+                    consoleRegs.write(String.valueOf(val));
+                } else {
+                    System.out.println("ERROR: OUT not allowed for device " + device + ". Allowed: 1,3..31");
+                }
+                break;
+
+            case CHK_OPCODE:
+                if (device == 0) {
+                    setGPR(r, (short) keyboard.status());
+                } else if (device == 1) {
+                    setGPR(r, (short) printer.status());
+                } else if (device == 2) {
+                    setGPR(r, (short) cardReader.status());
+                } else if (device >= 3 && device <= 31) {
+                    setGPR(r, (short) consoleRegs.status());
+                } else {
+                    setGPR(r, (short)0);
+                }
+                break;
+
+            default:
+                System.out.println("ERROR: ExecuteIO called with unsupported opcode " + opcode);
+                break;
+        }
+    }
+
+    // Multiply/divide/compare/logical
+    public void ExecuteArithmeticLogical(int opcode, short rx, short ry) {
+        int a = getGPR(rx);
+        int b = getGPR(ry);
+
+        switch (opcode) {
+            case MLT_OPCODE: {
+                int prod = a * b;
+                // Store high/low into R0 (low) and R1 (high) simple policy
+                setGPR((short)0, (short)(prod & 0xFFFF));
+                setGPR((short)1, (short)((prod >>> 16) & 0xFFFF));
+                break;
+            }
+            case DVD_OPCODE: {
+                if (b == 0) {
+                    System.out.println("ERROR: Divide by zero");
+                    System.exit(1);
+                }
+                int quot = a / b;
+                int rem = a % b;
+                setGPR((short)0, (short)(quot & 0xFFFF));
+                setGPR((short)1, (short)(rem & 0xFFFF));
+                break;
+            }
+            case TRR_OPCODE: {
+                // Test registers: set condition code: 0 equal, -1 less, 1 greater
+                int cc = Integer.compare(a, b);
+                setConditionCode((short) cc);
+                break;
+            }
+            case AND_OPCODE: {
+                setGPR(rx, (short)(a & b));
+                break;
+            }
+            case ORR_OPCODE: {
+                setGPR(rx, (short)(a | b));
+                break;
+            }
+            case NOT_OPCODE: {
+                setGPR(rx, (short)(~a));
+                break;
+            }
+            default:
+                System.out.println("ERROR: Unhandled arithmetic/logical opcode " + opcode);
+                System.exit(1);
+        }
+    }
+
+    // TRAP handler (tiny)
+    public void ExecuteTRAP(short trap) {
+        // Provide simple system services
+        switch (trap) {
+            case 1:
+                // Read signed integer from keyboard (blocking via GUI push)
+                short v = readSignedIntegerFromKeyboard();
+                setGPR((short)0, v);
+                break;
+            case 2:
+                // Print integer in R0 to printer with newline
+                int outv = getGPR((short)0);
+                printer.write(String.valueOf(outv) + "\n");
+                break;
+            default:
+                System.out.println("TRAP invoked: " + trap);
+                System.exit(0);
+        }
+    }
+
+    // Helper to read a full signed 16-bit integer from keyboard device
+    private short readSignedIntegerFromKeyboard() {
+        // read characters until newline
+        StringBuilder sb = new StringBuilder();
+        while (true) {
+            int ch = keyboard.readChar();
+            if (ch == -1) {
+                // no data currently; return 0 as default
+                return 0;
+            }
+            if (ch == '\n' || ch == '\r') break;
+            sb.append((char) ch);
+        }
+
+        String s = sb.toString().trim();
+        if (s.isEmpty()) return 0;
+        try {
+            int parsed = Integer.parseInt(s);
+            if (parsed < Short.MIN_VALUE) parsed = Short.MIN_VALUE;
+            if (parsed > Short.MAX_VALUE) parsed = Short.MAX_VALUE;
+            return (short) parsed;
+        } catch (NumberFormatException e) {
+            return 0;
         }
     }
     
