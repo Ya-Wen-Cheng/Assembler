@@ -3,8 +3,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import javafx.stage.FileChooser;
-import devices.KeyboardDevice;
-import devices.PrinterDevice;
 
 
 public class CPU_1_Simple extends Transformer {
@@ -45,17 +43,15 @@ public class CPU_1_Simple extends Transformer {
 
     static final short TRAP_OPCODE = 0x18; // 030 octal -> 24 dec
 
-    // Use existing register classes
     public GeneralRegister generalRegister;
     public IndexRegister indexRegister;
     public ConditionRegister conditionRegister;
     // Devices
     public KeyboardDevice keyboard;
     public PrinterDevice printer;
-    public devices.CardReaderDevice cardReader;
-    public devices.ConsoleRegisterDevice consoleRegs;
+    public CardReaderDevice cardReader;
+    public ConsoleRegisterDevice consoleRegs;
     
-    // Keep char arrays for compatibility with existing code
     public char[] instructionRegister;
     public char[] memoryFaultRegister;
     public char[] memoryBufferRegister;
@@ -75,15 +71,80 @@ public class CPU_1_Simple extends Transformer {
         memoryAddressRegister = new char[12];
         programCounter = new char[12];
         ResetRegisters();
-    // Initialize devices
+    // Initialize devices (internal implementations)
     keyboard = new KeyboardDevice();
     printer = new PrinterDevice();
-    cardReader = new devices.CardReaderDevice();
-    consoleRegs = new devices.ConsoleRegisterDevice();
+    cardReader = new CardReaderDevice();
+    consoleRegs = new ConsoleRegisterDevice();
+    }
+
+    // ---- Embedded device implementations (simple) ----
+    // These are minimal internal device classes so CPU_1_Simple does not
+    // depend on external files for IN/OUT/CHK behavior.
+
+    public static class KeyboardDevice {
+        private final StringBuilder buffer = new StringBuilder();
+
+        // Called by GUI to push input (a line or characters)
+        public synchronized void pushString(String s) {
+            buffer.append(s);
+        }
+
+        // Read next character, or -1 if none available
+        public synchronized int readChar() {
+            if (buffer.length() == 0) return -1;
+            int ch = buffer.charAt(0);
+            buffer.deleteCharAt(0);
+            return ch;
+        }
+
+        // Status: 1 if there is data, 0 otherwise
+        public synchronized int status() {
+            return buffer.length() > 0 ? 1 : 0;
+        }
+    }
+
+    public static class PrinterDevice {
+        private final StringBuilder out = new StringBuilder();
+        // Optional listener for GUI
+        private java.util.function.Consumer<String> listener = null;
+
+        public synchronized void write(String s) {
+            out.append(s);
+            if (listener != null) listener.accept(s);
+        }
+
+        public synchronized int status() {
+            return 1; // always ready
+        }
+
+        public synchronized void setListener(java.util.function.Consumer<String> l) {
+            listener = l;
+        }
+
+        public synchronized String getOutput() { return out.toString(); }
+    }
+
+    public static class CardReaderDevice {
+        // Minimal stub: no card input implemented
+        public synchronized int readChar() { return -1; }
+        public synchronized int status() { return 0; }
+    }
+
+    public static class ConsoleRegisterDevice {
+        private int value = 0;
+        public synchronized int readChar() { return value; }
+        public synchronized void write(String s) {
+            try {
+                value = Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+        public synchronized int status() { return 1; }
     }
 
     private void ResetRegisters() {
-        // Reset register objects
         generalRegister.data.clear();
         indexRegister.data.clear();
         conditionRegister.data.clear();
@@ -101,7 +162,6 @@ public class CPU_1_Simple extends Transformer {
         memory.data.clear();
     }
     
-    // ROM Loader functionality
     public boolean loadROM(File file, Memory memory) {
         try (Scanner scanner = new Scanner(file)) {
             while (scanner.hasNextLine()) {
@@ -128,7 +188,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Load ROM from fixed file name (load_file.txt)
     public boolean loadROMFromFixedFile(Memory memory) {
         File fixedFile = new File("load_file.txt");
         if (fixedFile.exists()) {
@@ -137,8 +196,7 @@ public class CPU_1_Simple extends Transformer {
         return false;
     }
     
-    // Get file chooser for ROM loading - Commented out for compilation without JavaFX
-    
+    // (getROMFileChooser requires JavaFX FileChooser)
     public static FileChooser getROMFileChooser() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select ROM File");
@@ -150,7 +208,6 @@ public class CPU_1_Simple extends Transformer {
     }
     
 
-    // Register setter methods using existing register classes
     public void setGPR(short reg, short value) {
         try {
             generalRegister.setValue(reg, value);
@@ -192,7 +249,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
 
-    // Register getter methods
     public short getMemoryAddressValue() {
         return BinaryToDecimal(memoryAddressRegister, 12);
     }
@@ -236,7 +292,6 @@ public class CPU_1_Simple extends Transformer {
         return BinaryToDecimal(memoryFaultRegister, 4);
     }
 
-    // Memory access with bounds checking - Display errors and stop execution
     public void Execute(Memory memory) {
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
         System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
@@ -256,7 +311,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute LDR instruction: Load Register from memory
     public void ExecuteLDR(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
@@ -283,7 +337,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute STR instruction: Store Register to memory
     public void ExecuteSTR(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
@@ -310,7 +363,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute LDA instruction: Load Address into register - Display errors and stop execution
     public void ExecuteLDA(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
@@ -332,7 +384,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute LDX instruction: Load Index register
     public void ExecuteLDX(short x, short address, Memory memory) {
         // Calculate effective address: address
         short effectiveAddress = address;
@@ -355,7 +406,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute STX instruction: Store Index register
     public void ExecuteSTX(short x, short address, Memory memory) {
         // Calculate effective address: address
         short effectiveAddress = address;
@@ -377,7 +427,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute AMR instruction: Add Memory to Register
     public void ExecuteAMR(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
@@ -406,7 +455,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute SMR instruction: Subtract Memory from Register
     public void ExecuteSMR(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
@@ -435,7 +483,6 @@ public class CPU_1_Simple extends Transformer {
         }
     }
     
-    // Execute AIR instruction: Add Immediate to Register
     public void ExecuteAIR(short r, short immediate, Memory memory) {
         // Add immediate value to register r
         short currentValue = getGPR(r);
@@ -443,7 +490,6 @@ public class CPU_1_Simple extends Transformer {
         setGPR(r, result);
     }
     
-    // Execute SIR instruction: Subtract Immediate from Register
     public void ExecuteSIR(short r, short immediate, Memory memory) {
         // Subtract immediate value from register r
         short currentValue = getGPR(r);
