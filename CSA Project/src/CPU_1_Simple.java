@@ -2,7 +2,8 @@ import java.util.Arrays;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
-import javafx.stage.FileChooser;
+import javafx.stage.FileChooser; // Commented out for compilation without JavaFX
+
 
 
 public class CPU_1_Simple extends Transformer {
@@ -172,9 +173,12 @@ public class CPU_1_Simple extends Transformer {
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 2) {
                     try {
+
                         int addr = Integer.parseInt(parts[0], 8); // Octal address
                         int value = Integer.parseInt(parts[1], 8); // Octal value
-                        if (addr >= 0 && addr < 32) {
+
+
+                        if (addr >= 0 && addr < 4096) {
                             memory.setValue(addr, value);
                         }
                     } catch (NumberFormatException e) {
@@ -249,8 +253,9 @@ public class CPU_1_Simple extends Transformer {
         }
     }
 
-    public short getMemoryAddressValue() {
-        return BinaryToDecimal(memoryAddressRegister, 12);
+    // Register getter methods
+    public short getMemoryAddressValue() throws BlankCharArrayException {
+    		return BinaryToDecimal(memoryAddressRegister, 12); 
     }
 
     public short getMemoryBufferValue() {
@@ -294,9 +299,11 @@ public class CPU_1_Simple extends Transformer {
 
     public void Execute(Memory memory) {
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
+
+        if (marVal >= 0 && marVal < 4096) {
+
         System.out.println("DEBUG: CPU Execute - MAR value: " + marVal);
-        if (marVal >= 0 && marVal < 32) {
-            Integer val = memory.readFromCache(marVal);
+            Integer val = memory.getValue(marVal);
             if (val != null) {
                 DecimalToBinary(val.shortValue(), memoryBufferRegister, 16);
             } else {
@@ -321,7 +328,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = (short) (address + ixValue);
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
             Execute(memory);
@@ -347,7 +354,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = (short) (address + ixValue);
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Get value from register r and store in MBR
             short value = getGPR(r);
             setMemoryBufferRegister(value);
@@ -373,7 +380,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = (short) (address + ixValue);
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Load effective address into register r
             setGPR(r, effectiveAddress);
         } else {
@@ -389,7 +396,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = address;
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
             short pc = getProgramCounter();
@@ -411,7 +418,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = address;
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Get value from index register x and store in MBR
             short value = getIXR(x);
             setMemoryBufferRegister(value);
@@ -437,7 +444,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = (short) (address + ixValue);
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
             Execute(memory);
@@ -465,7 +472,7 @@ public class CPU_1_Simple extends Transformer {
         short effectiveAddress = (short) (address + ixValue);
         
         // Check if effective address is valid (0-31)
-        if (effectiveAddress >= 0 && effectiveAddress < 32) {
+        if (effectiveAddress >= 0 && effectiveAddress < 4096) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
             Execute(memory);
@@ -929,7 +936,7 @@ public class CPU_1_Simple extends Transformer {
         int instructionCount = 0;
         while (instructionCount < 50) { // Safety limit
             short pc = getProgramCounter();
-            if (pc < 16 || pc >= 32) break;
+            if (pc < 16 || pc >= 4096) break;
             
             Integer machineCode = memory.getValue(pc);
             if (machineCode == null) break;

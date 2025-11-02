@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import java.io.File;
-
+	
 public class GUI extends Application {
 
 
@@ -160,10 +160,11 @@ public class GUI extends Application {
         
         Button load = new Button("Load");
         load.setOnAction(e -> {
+
             // Load value from memory address (MAR) into MBR
         	try {
         		short address = cpu.getMemoryAddressValue();
-	        	if (address >= 0 && address < 32) {
+	        	if (address >= 0 && address < 4096) {
 	        		marField.setText(Short.toString(address));
 	        		Integer val = memory.getValue(address);
 	        		cpu.setMemoryBufferRegister(val.shortValue());
@@ -177,6 +178,33 @@ public class GUI extends Application {
         	}catch(NullPointerException exp) {
         		System.out.println("Nothing is found in memory");
         	}
+        });
+        
+        Button load_plus = new Button("Load+");
+        load_plus.setOnAction(e -> {
+        	// Load value from memory address (MAR) into MBR
+        	try {
+        		short marVal = cpu.getMemoryAddressValue();
+	        	if (marVal >= 0 && marVal < 4096) {
+	        		Short next_memory = (short)(marVal+1);
+	        		cpu.setMemoryAddressRegister(next_memory);
+	        		marField.setText(Short.toString(next_memory));
+	        		Integer val = memory.getValue(next_memory);
+	        		cpu.setMemoryBufferRegister(val.shortValue());
+	        		mbrField.setText(Short.toString(val.shortValue()));
+	        		System.out.println("memory ["+next_memory+"] = "+val);
+	        		updateRegisterDisplay();
+	        		
+        		}else {
+        			System.out.println("Invalid memory address: " + marVal + " (must be 0-31)");
+        		}
+        	}catch(BlankCharArrayException exp) {
+        		System.out.println("Nothing is found in MAR");
+        	}catch(NullPointerException exp) {
+        		System.out.println("Nothing is found in memory");
+        	}
+            
+        	
         });
 
         Button store = new Button("Store");
@@ -197,11 +225,31 @@ public class GUI extends Application {
         	}catch(NumberFormatException exp) {
         		System.out.println("MBR field is empty");
         	}
-        	
-        	
-        	
-      
+
         });
+        
+        Button store_plus = new Button("Store+");
+        store_plus.setOnAction(e -> {
+        	try {
+        		// memory address and value to be stored
+        		short marVal = cpu.getMemoryAddressValue();
+        		short next_memory = (short)(marVal+1);
+        		cpu.setMemoryAddressRegister(next_memory);
+        		marField.setText(Short.toString(next_memory));
+        		short mbrVal = Short.parseShort(mbrField.getText());
+        		memory.setValue(next_memory, mbrVal);
+        		System.out.println("Loaded memory["+next_memory+"] = "+memory.getValue(marVal));
+        		updateRegisterDisplay();
+        		
+        	
+        	}catch(BlankCharArrayException exp) { 
+        		System.out.println("Nothing is found in MAR");
+        	}catch(NumberFormatException exp) {
+        		System.out.println("MBR field is empty");
+        	}
+            
+        });
+        
 
         Button run = new Button("Run");
         run.setOnAction(e -> {
@@ -259,7 +307,7 @@ public class GUI extends Application {
             }
         });
 
-        controlButtons.getChildren().addAll(load, store, run, step, halt, ipl);
+        controlButtons.getChildren().addAll(load, load_plus, store, store_plus, run, step, halt, ipl);
         bottom.setLeft(input);
         bottom.setRight(controlButtons);
 
@@ -267,6 +315,7 @@ public class GUI extends Application {
     }
 
     // Step through one instruction at a time
+
     private void stepOneInstruction() throws BlankCharArrayException{
     	try {
     		short pc = cpu.getProgramCounter();
@@ -297,6 +346,8 @@ public class GUI extends Application {
         }
 
         while (instructionCount < maxInstructions && !haltRequested) {
+
+ 
         	try {
 	            short pc = cpu.getProgramCounter();
 	            if (pc < 0 || pc >= 32) {
@@ -332,7 +383,7 @@ public class GUI extends Application {
     }
     
     // Execute a single instruction based on machine code
-    private void executeInstruction(int machineCode) throws BlankCharArrayException {
+    private void executeInstruction(int machineCode) {
 
         int opcode = (machineCode >>> 10) & 0x3F;
         int r = (machineCode >>> 8) & 0x3;
