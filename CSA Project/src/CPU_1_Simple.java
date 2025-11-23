@@ -15,8 +15,8 @@ public class CPU_1_Simple extends Transformer {
     static final short SUBTRACT_MEMORY_REGISTER_OPCODE = 0x05;
     static final short ADD_IMMEDIATE_REGISTER_OPCODE = 0x06;
     static final short SUBTRACT_IMMEDIATE_REGISTER_OPCODE = 0x07;
-    static final short LOAD_INDEX_OPCODE = 0x041;
-    static final short STORE_INDEX_OPCODE = 0x042;
+    static final short LOAD_INDEX_OPCODE = 0x21;  // 041 octal -> 33 dec -> 0x21
+    static final short STORE_INDEX_OPCODE = 0x22;  // 042 octal -> 34 dec -> 0x22
     static final short HALT_OPCODE = 0x00;
     // Additional opcodes (match InstructionEncoder values)
     static final short JZ_OPCODE  = 0x08;  // 010 octal
