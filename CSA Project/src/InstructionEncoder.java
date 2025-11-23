@@ -38,9 +38,18 @@ public class InstructionEncoder {
             case "SRC": op = 031; break;
             case "RRC": op = 032; break;
 
+            case "FADD": op = 033; break;
+            case "FSUB": op = 034; break;
+            case "VADD": op = 035; break;
+            case "VSUB": op = 036; break;
+            case "CNVRT": op = 037; break;
+
             case "IN":  op = 061; break;
             case "OUT": op = 062; break;
             case "CHK": op = 063; break;
+
+            case "LDFR": op = 050; break;
+            case "STFR": op = 051; break;
 
             case "MLT": op = 070; break;
             case "DVD": op = 071; break;
@@ -57,7 +66,7 @@ public class InstructionEncoder {
 
         int code;
 
-        if (opcode.matches("(?i)LDR|STR|LDA|AMR|SMR|JZ|JNE|JCC|JMA|JSR|SOB|JGE")) {
+        if (opcode.matches("(?i)LDR|STR|LDA|AMR|SMR|JZ|JNE|JCC|JMA|JSR|SOB|JGE|FADD|FSUB|VADD|VSUB|CNVRT|LDFR|STFR")) {
             int r = parse(operands[0]);
             int x = parse(operands[1]);
             int addr = parse(operands[2]) & 0x1F;

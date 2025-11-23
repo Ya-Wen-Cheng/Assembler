@@ -20,6 +20,7 @@ public class Cache {
         int data = 0;
         boolean valid = false;
         boolean dirty = false;
+        String lastAccess = ""; // "HIT", "MISS", "WRITE", ""
 
         @Override
         public String toString() {
@@ -34,20 +35,26 @@ public class Cache {
 
         // Cache Hit
         if (line.valid && line.address == address) {
-            System.out.println("✅ Cache HIT at address: " + address);
+            line.lastAccess = "HIT";
             return line.data;
         }
 
         // Cache Miss → Fetch from main memory
-        System.out.println("❌ Cache MISS at address: " + address);
         Integer memoryValue = memory.getValue(address);
-        if (memoryValue == null)
-            throw new IllegalArgumentException("Memory read failed at address: " + address);
+        if (memoryValue == null) {
+            // Return 0 for uninitialized memory instead of throwing exception
+            // This allows execution to continue gracefully
+            line.address = address;
+            line.data = 0;
+            line.valid = true;
+            line.dirty = false;
+            line.lastAccess = "MISS";
+            return 0;
+        }
 
         // Write back if dirty
         if (line.valid && line.dirty) {
             memory.setValue(line.address, line.data);
-            System.out.println("↩️  Wrote back dirty line for address: " + line.address);
         }
 
         // Update cache line
@@ -55,6 +62,7 @@ public class Cache {
         line.data = memoryValue;
         line.valid = true;
         line.dirty = false;
+        line.lastAccess = "MISS";
 
         return memoryValue;
     }
@@ -68,30 +76,39 @@ public class Cache {
         if (line.valid && line.address == address) {
             line.data = data;
             line.dirty = true;
-            System.out.println("✏️ Cache WRITE HIT at address: " + address + ", new data = " + data);
+            line.lastAccess = "WRITE-HIT";
         }
         // Cache Miss
         else {
-            System.out.println("✏️ Cache WRITE MISS at address: " + address);
             if (line.valid && line.dirty) {
                 memory.setValue(line.address, line.data);
-                System.out.println("↩️  Wrote back dirty line for address: " + line.address);
             }
             line.address = address;
             line.data = data;
             line.valid = true;
             line.dirty = true;
+            line.lastAccess = "WRITE-MISS";
         }
     }
 
     // ---------- FLUSH CACHE ----------
     public void flushCache() {
-        System.out.println("🧹 Flushing cache to main memory...");
         for (CacheLine line : lines) {
             if (line.valid && line.dirty) {
                 memory.setValue(line.address, line.data);
                 line.dirty = false;
             }
+        }
+    }
+    
+    // ---------- RESET CACHE ----------
+    public void resetCache() {
+        for (CacheLine line : lines) {
+            line.address = -1;
+            line.data = 0;
+            line.valid = false;
+            line.dirty = false;
+            line.lastAccess = "";
         }
     }
 
@@ -102,5 +119,43 @@ public class Cache {
             System.out.println("Line " + i + ": " + lines[i]);
         }
         System.out.println("======================");
+    }
+    
+    // ---------- GET CACHE LINES FOR GUI DISPLAY ----------
+    public static class CacheLineInfo {
+        public int lineIndex;
+        public int address;
+        public int data;
+        public boolean valid;
+        public boolean dirty;
+        public String lastAccess;
+        
+        public CacheLineInfo(int lineIndex, int address, int data, boolean valid, boolean dirty, String lastAccess) {
+            this.lineIndex = lineIndex;
+            this.address = address;
+            this.data = data;
+            this.valid = valid;
+            this.dirty = dirty;
+            this.lastAccess = lastAccess;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("Line %d: Addr=%02d | Data=%d | V=%b | D=%b | %s", 
+                lineIndex, address, data, valid, dirty, lastAccess);
+        }
+    }
+    
+    public CacheLineInfo[] getCacheLines() {
+        CacheLineInfo[] info = new CacheLineInfo[CACHE_SIZE];
+        for (int i = 0; i < CACHE_SIZE; i++) {
+            info[i] = new CacheLineInfo(i, lines[i].address, lines[i].data, 
+                lines[i].valid, lines[i].dirty, lines[i].lastAccess);
+        }
+        return info;
+    }
+    
+    public int getCacheSize() {
+        return CACHE_SIZE;
     }
 }

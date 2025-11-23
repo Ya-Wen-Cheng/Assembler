@@ -19,8 +19,11 @@ public class GUI extends Application {
 
     private TextField[] gprFields = new TextField[4];
     private TextField[] ixrFields = new TextField[3];
-    private TextField pcField, marField, mbrField, irField, ccField;
+    private TextField pcField, marField, mbrField, irField, ccField, mfrField;
     private TextField binaryField, octalField;
+    private TextArea cacheArea;
+    private TextArea printerArea;
+    private TextField consoleField;
     
 
     @Override
@@ -40,9 +43,13 @@ public class GUI extends Application {
         leftchild.getChildren().addAll(leftPanel, bottomPanel);
         root.getChildren().addAll(leftchild, rightPanel);
 
-        Scene scene = new Scene(root, 1000, 600);
+        Scene scene = new Scene(root, 1200, 700);
         primaryStage.setScene(scene);
         primaryStage.show();
+        
+        // Initial display - show all registers as 0 and cache state
+        updateRegisterDisplay();
+        updateCacheDisplay();
     }
 
     private GridPane createRegisterPanel() {
@@ -84,9 +91,10 @@ public class GUI extends Application {
             grid.add(btn, 6, i + 1);
         }
 
-    String[] regs = {"PC", "MAR", "MBR", "IR", "CC"};
+    String[] regs = {"PC", "MAR", "MBR", "IR", "CC", "MFR"};
     TextField[] fields = {pcField = new TextField(), marField = new TextField(),
-        mbrField = new TextField(), irField = new TextField(), ccField = new TextField()};
+        mbrField = new TextField(), irField = new TextField(), ccField = new TextField(),
+        mfrField = new TextField()};
 
         int row = 1;
         for (int i = 0; i < regs.length; i++) {
@@ -119,7 +127,7 @@ public class GUI extends Application {
 
             grid.add(label, 8, row);
             grid.add(tf, 9, row);
-            if (!regs[i].equals("IR") && !regs[i].equals("CC")) grid.add(btn, 10, row);
+            if (!regs[i].equals("IR") && !regs[i].equals("CC") && !regs[i].equals("MFR")) grid.add(btn, 10, row);
             row++;
         }
 
@@ -135,14 +143,42 @@ public class GUI extends Application {
         right.setPadding(new Insets(10, 20, 10, 10));
 
         Label printerLabel = new Label("Printer");
-        TextArea printerArea = new TextArea();
+        printerArea = new TextArea();
         printerArea.setPrefSize(250, 70);
+        printerArea.setEditable(false);
 
         Label consoleLabel = new Label("Console Input");
-        TextField consoleField = new TextField();
+        consoleField = new TextField();
         consoleField.setPrefSize(250, 150);
+        
+        // Connect printer device to GUI display
+        cpu.printer.setListener(text -> {
+            javafx.application.Platform.runLater(() -> {
+                if (text != null) {
+                    printerArea.appendText(text);
+                }
+            });
+        });
+        
+        // Connect keyboard device to console input
+        consoleField.setOnAction(e -> {
+            String input = consoleField.getText();
+            if (!input.isEmpty()) {
+                cpu.keyboard.pushString(input + "\n");
+                System.out.println("Console input sent to keyboard: '" + input + "'");
+                consoleField.clear();
+            }
+        });
 
-        right.getChildren().addAll(printerLabel, printerArea, consoleLabel, consoleField);
+        // Cache Content View (Field Engineer Console)
+        Label cacheLabel = new Label("Cache Contents (Field Engineer Console)");
+        cacheArea = new TextArea();
+        cacheArea.setPrefSize(250, 200);
+        cacheArea.setEditable(false);
+        cacheArea.setStyle("-fx-font-family: 'Courier New', monospace; -fx-font-size: 10px;");
+
+        right.getChildren().addAll(printerLabel, printerArea, consoleLabel, consoleField, 
+            cacheLabel, cacheArea);
         return right;
     }
 
@@ -166,10 +202,12 @@ public class GUI extends Application {
         		short address = cpu.getMemoryAddressValue();
 	        	if (address >= 0 && address < 4096) {
 	        		marField.setText(Short.toString(address));
-	        		Integer val = memory.getValue(address);
-	        		cpu.setMemoryBufferRegister(val.shortValue());
-	        		mbrField.setText(Short.toString(val.shortValue()));
+	        		int val = memory.readFromCache(address);
+	        		cpu.setMemoryBufferRegister((short) val);
+	        		mbrField.setText(Short.toString((short) val));
 	        		System.out.println("memory ["+address+"] = "+val);
+	        		updateRegisterDisplay();
+	        		updateCacheDisplay();
         		}else {
         			System.out.println("Invalid memory address: " + address + " (must be 0-31)");
         		}
@@ -189,11 +227,12 @@ public class GUI extends Application {
 	        		Short next_memory = (short)(marVal+1);
 	        		cpu.setMemoryAddressRegister(next_memory);
 	        		marField.setText(Short.toString(next_memory));
-	        		Integer val = memory.getValue(next_memory);
-	        		cpu.setMemoryBufferRegister(val.shortValue());
-	        		mbrField.setText(Short.toString(val.shortValue()));
+	        		int val = memory.readFromCache(next_memory);
+	        		cpu.setMemoryBufferRegister((short) val);
+	        		mbrField.setText(Short.toString((short) val));
 	        		System.out.println("memory ["+next_memory+"] = "+val);
 	        		updateRegisterDisplay();
+	        		updateCacheDisplay();
 	        		
         		}else {
         			System.out.println("Invalid memory address: " + marVal + " (must be 0-31)");
@@ -214,11 +253,10 @@ public class GUI extends Application {
         		short address = cpu.getMemoryAddressValue();
         		marField.setText(Short.toString(address));
         		short mbrVal = Short.parseShort(mbrField.getText());
-        		memory.setValue(address, mbrVal);
-        		System.out.println("Loaded memory["+address+"] = "+memory.getValue(address));
-        		
-        		
-        		
+        		memory.writeToCache(address, mbrVal);
+        		System.out.println("Stored memory["+address+"] = "+mbrVal);
+        		updateRegisterDisplay();
+        		updateCacheDisplay();
         	
         	}catch(BlankCharArrayException exp) { 
         		System.out.println("Nothing is found in MAR");
@@ -237,9 +275,10 @@ public class GUI extends Application {
         		cpu.setMemoryAddressRegister(next_memory);
         		marField.setText(Short.toString(next_memory));
         		short mbrVal = Short.parseShort(mbrField.getText());
-        		memory.setValue(next_memory, mbrVal);
-        		System.out.println("Loaded memory["+next_memory+"] = "+memory.getValue(marVal));
+        		memory.writeToCache(next_memory, mbrVal);
+        		System.out.println("Stored memory["+next_memory+"] = "+mbrVal);
         		updateRegisterDisplay();
+        		updateCacheDisplay();
         		
         	
         	}catch(BlankCharArrayException exp) { 
@@ -286,12 +325,27 @@ public class GUI extends Application {
 
             // Reset system first
             cpu.Reset(memory);
+            memory.resetCache();
             haltRequested = false;
+            
+            // Clear printer display
+            printerArea.clear();
+            
+            // Reconnect printer device to GUI display (in case CPU was reset)
+            cpu.printer.setListener(text -> {
+                javafx.application.Platform.runLater(() -> {
+                    printerArea.appendText(text);
+                });
+            });
+            
+            // Update cache display immediately after reset
+            updateCacheDisplay();
 
             if (selectedFile != null) {
                 if (cpu.loadROM(selectedFile, memory)) {
                     System.out.println("ROM loaded successfully from: " + selectedFile.getName());
                     refreshGUIAfterIPL();
+                    updateCacheDisplay(); // Update cache display after IPL load
 
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("ROM Load Complete");
@@ -304,6 +358,7 @@ public class GUI extends Application {
             } else {
                 System.out.println("System Reset (no ROM file selected)");
                 refreshGUIAfterIPL();
+                updateCacheDisplay();
             }
         });
 
@@ -320,14 +375,13 @@ public class GUI extends Application {
     	try {
     		short pc = cpu.getProgramCounter();
     		if (pc >= 0 && pc < 32) {
-    			Integer machineCode = memory.getValue(pc);
-	            if (machineCode != null) {
-	                // Execute the instruction based on opcode
-	                executeInstruction(machineCode);
+    			int machineCode = memory.readFromCache(pc);
+            // Execute the instruction based on opcode
+                executeInstruction(machineCode);
 //	                cpu.setProgramCounter(pc++);
 	                updateRegisterDisplay();
+	                updateCacheDisplay();
 //	                System.out.println("PC is now: "+pc++);
-	            }
     		}
     	}catch(BlankCharArrayException exp) {
     		System.out.println("Nothing is found in PC");
@@ -342,7 +396,37 @@ public class GUI extends Application {
 
         System.out.println("=== MEMORY DUMP (first 25 entries) ===");
         for (int i = 0; i < 25; i++) {
-            System.out.println("Memory[" + i + "] = " + memory.getValue(i));
+            Integer val = memory.getValue(i);
+            System.out.println("Memory[" + i + "] = " + (val != null ? val : "null"));
+        }
+
+        // Check for HLT after memory dump to handle exceptions properly
+        try {
+            short initialPC = cpu.getProgramCounter();
+            if (initialPC >= 0 && initialPC < 32) {
+                Integer initialVal = memory.getValue(initialPC);
+                if (initialVal != null) {
+                    int initialMachineCode = initialVal;
+                    int initialOpcode = (initialMachineCode >>> 10) & 0x3F;
+                    if (initialOpcode == 0x00) {
+                        System.out.println("Program halted (HLT instruction at start)");
+                        javafx.application.Platform.runLater(() -> {
+                            updateRegisterDisplay();
+                            updateCacheDisplay();
+                        });
+                        return; // Exit early if HLT is the first instruction
+                    }
+                } else {
+                    System.out.println("Warning: Memory at PC=" + initialPC + " is null, cannot execute");
+                    javafx.application.Platform.runLater(() -> {
+                        updateRegisterDisplay();
+                        updateCacheDisplay();
+                    });
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error checking initial instruction: " + e.getMessage());
         }
 
         while (instructionCount < maxInstructions && !haltRequested) {
@@ -354,10 +438,14 @@ public class GUI extends Application {
 	                break; // Out of bounds
 	            }
 	            
-	            Integer machineCode = memory.getValue(pc);
-	            if (machineCode == null) {
-	                break; // No instruction at this address
+	            // Check if memory exists before reading
+	            Integer memVal = memory.getValue(pc);
+	            if (memVal == null) {
+	                System.out.println("Memory at PC=" + pc + " is null, stopping execution");
+	                break;
 	            }
+	            
+	            int machineCode = memory.readFromCache(pc);
 	            
 	            // Check for HLT instruction (opcode 0x00)
 	            int opcode = (machineCode >>> 10) & 0x3F;
@@ -368,11 +456,34 @@ public class GUI extends Application {
 	            
 	            // Execute the instruction
 	            executeInstruction(machineCode);
+	            
+	            // Update displays on JavaFX thread
+	            javafx.application.Platform.runLater(() -> {
+	                updateRegisterDisplay();
+	                updateCacheDisplay();
+	            });
+	            
 	            instructionCount++;
         	}catch(BlankCharArrayException exp) {
         		System.out.println("Nothing is found in PC");
+        		break; // Exit loop if PC is blank
+        	}catch(Exception exp) {
+        		System.out.println("Exception during execution: " + exp.getMessage());
+        		// Update displays even on exception
+        		javafx.application.Platform.runLater(() -> {
+        		    updateRegisterDisplay();
+        		    updateCacheDisplay();
+        		});
+        		// Check if it's a memory null issue, if so break gracefully
+        		break;
         	}
         }
+        
+        // Final update of displays
+        javafx.application.Platform.runLater(() -> {
+            updateRegisterDisplay();
+            updateCacheDisplay();
+        });
         
         if (haltRequested) {
             System.out.println("Program stopped: Halt requested by user");
@@ -384,36 +495,11 @@ public class GUI extends Application {
     
     // Execute a single instruction based on machine code
     private void executeInstruction(int machineCode) {
-
-        int opcode = (machineCode >>> 10) & 0x3F;
-        int r = (machineCode >>> 8) & 0x3;
-        int x = (machineCode >>> 6) & 0x3;
-        int i = (machineCode >>> 5) & 0x1;
-        int address = machineCode & 0x1F;
-        
-        switch (opcode) {
-            case 0x03: // LDA - Load Address
-            	try {
-	                cpu.ExecuteLDA((short) r, (short) x, (short) address, memory);
-	                // Increment PC for next instruction
-	                short currentPC = cpu.getProgramCounter();
-	                cpu.setProgramCounter((short) (currentPC + 1));
-	                break;
-            	}catch(BlankCharArrayException exp) {
-            		System.out.println("Nothing found in PC");
-            	}
-            case 0x00: // HLT - Halt
-                System.out.println("HLT instruction executed");
-                break;
-            default:
-                // For other instructions, just increment PC
-            	try {
-	                short pc = cpu.getProgramCounter();
-	                cpu.setProgramCounter((short) (pc + 1));
-	                break;
-            	}catch(BlankCharArrayException exp) {
-            		System.out.println("Nothing found in PC");
-            	}
+        try {
+            // Use CPU's full instruction execution which handles all opcodes
+            cpu.ExecuteInstruction(machineCode, memory);
+        } catch (BlankCharArrayException exp) {
+            System.out.println("Error executing instruction: " + exp.getMessage());
         }
     }
 
@@ -442,8 +528,39 @@ public class GUI extends Application {
         try {
             irField.setText("0");
             ccField.setText(String.valueOf(cpu.getConditionCode()));
+            mfrField.setText(String.valueOf(cpu.getMemoryFaultRegister()));
         }catch(Exception exp) {
         	System.out.println(exp.getMessage());
+        }
+        
+        // Update cache display
+        updateCacheDisplay();
+    }
+    
+    // Update cache content display
+    private void updateCacheDisplay() {
+        try {
+            Cache.CacheLineInfo[] cacheLines = memory.getCache().getCacheLines();
+            StringBuilder cacheText = new StringBuilder();
+            cacheText.append("=== CACHE CONTENTS ===\n");
+            cacheText.append(String.format("%-8s %-8s %-12s %-8s %-8s %-12s\n", 
+                "Line", "Address", "Data", "Valid", "Dirty", "Status"));
+            cacheText.append("------------------------------------------------------------\n");
+            
+            for (Cache.CacheLineInfo line : cacheLines) {
+                String status = line.lastAccess.isEmpty() ? "-" : line.lastAccess;
+                cacheText.append(String.format("%-8d %-8d %-12d %-8s %-8s %-12s\n",
+                    line.lineIndex,
+                    line.address >= 0 ? line.address : -1,
+                    line.data,
+                    line.valid ? "Yes" : "No",
+                    line.dirty ? "Yes" : "No",
+                    status));
+            }
+            cacheText.append("============================================================\n");
+            cacheArea.setText(cacheText.toString());
+        } catch (Exception e) {
+            cacheArea.setText("Error displaying cache: " + e.getMessage());
         }
     }
 
@@ -472,10 +589,13 @@ public class GUI extends Application {
         try {
             irField.setText("0");
             ccField.setText(String.valueOf(cpu.getConditionCode()));
+            mfrField.setText(String.valueOf(cpu.getMemoryFaultRegister()));
         }catch(Exception exp) {
         	System.out.println(exp.getMessage());
         }
         
+        // Update cache display (should show all invalid after reset)
+        updateCacheDisplay();
 
         // Log confirmation for debugging
         System.out.println("[GUI] Registers updated after IPL load");
