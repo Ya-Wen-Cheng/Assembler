@@ -96,7 +96,7 @@ public class CPU_1_Simple extends Transformer {
 
                 // Normal "address value" pair (octal)
                 String[] parts = line.split("\\s+");
-                if (parts.length >= 2) {
+                if (parts.length >= 2) { 
                     try {
                         int addr = Integer.parseInt(parts[0], 8);
                         int value = Integer.parseInt(parts[1], 8);
