@@ -5,16 +5,27 @@ import java.util.Scanner;
 import javafx.stage.FileChooser;
 
 public class CPU_1_Simple extends Transformer {
-
-    static final short LOAD_REGISTER_OPCODE = 0x01;
-    static final short STORE_REGISTER_OPCODE = 0x02;
-    static final short LOAD_ADDRESS_OPCODE = 0x03;
-    static final short ADD_MEMORY_REGISTER_OPCODE = 0x04;
-    static final short SUBTRACT_MEMORY_REGISTER_OPCODE = 0x05;
-    static final short ADD_IMMEDIATE_REGISTER_OPCODE = 0x06;
-    static final short SUBTRACT_IMMEDIATE_REGISTER_OPCODE = 0x07;
-    static final short LOAD_INDEX_OPCODE = 0x041;
-    static final short STORE_INDEX_OPCODE = 0x042;
+	// Load/store instructions
+    static final short LOAD_REGISTER_OPCODE_LDR = 0x01;
+    static final short STORE_REGISTER_OPCODE_STR = 0x02;
+    static final short LOAD_ADDRESS_OPCODE_LDA = 0x03;
+    static final short LOAD_INDEX_OPCODE_LDX = 0x041; 
+    static final short STORE_INDEX_OPCODE_STX = 0x042;
+    
+    
+    // Transfer instructions
+    static final short JUMP_IF_NOT_EQUAL_OPCODE_JNE = 0x11;
+    
+    // I/O Operations
+    static final short INPUT_OPCODE_IN = 0x61;
+    
+    // Arithmetic instructions
+    static final short ADD_MEMORY_REGISTER_OPCODE_AMR = 0x04;
+    static final short SUBTRACT_MEMORY_REGISTER_OPCODE_SMR = 0x05;
+    static final short ADD_IMMEDIATE_REGISTER_OPCODE_AIR = 0x06;
+    static final short SUBTRACT_IMMEDIATE_REGISTER_OPCODE_SIR = 0x07;
+    
+    // HALT
     static final short HALT_OPCODE = 0x00;
 
     // Use existing register classes
@@ -234,7 +245,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDR instruction: Load Register from memory
-    public void ExecuteLDR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
+    public void ExecuteLDR(short r, short x, short address, Memory memory){
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -247,11 +258,30 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
-            Execute(memory);
+            try {
+				Execute(memory);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             
             // Load MBR into register r
-            short value = getMemoryBufferValue();
-            setGPR(r, value);
+            short value;
+			try {
+				value = getMemoryBufferValue();
+				setGPR(r, value);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            try {
+            	System.out.println("LDR Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -279,6 +309,13 @@ public class CPU_1_Simple extends Transformer {
             
             // Store MBR to memory
             memory.setValue(effectiveAddress, value);
+            try {
+            	System.out.println("STR Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -301,6 +338,13 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Load effective address into register r
             setGPR(r, effectiveAddress);
+            try {
+            	System.out.println("LDA Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -310,7 +354,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute LDX instruction: Load Index register
-    public void ExecuteLDX(short x, short address, Memory memory) throws BlankCharArrayException{
+    public void ExecuteLDX(short x, short address, Memory memory){
         // Calculate effective address: address
         short effectiveAddress = address;
         
@@ -318,11 +362,31 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
-            Execute(memory);
+            
+            try {
+				Execute(memory);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             
             // Load MBR into index register x
-            short value = getMemoryBufferValue();
-            setIXR(x, value);
+            short value;
+			try {
+				value = getMemoryBufferValue();
+				setIXR(x, value);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            try {
+            	System.out.println("LDX Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -345,6 +409,13 @@ public class CPU_1_Simple extends Transformer {
             
             // Store MBR to memory
             memory.setValue(effectiveAddress, value);
+            try {
+            	System.out.println("STX Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -354,7 +425,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute AMR instruction: Add Memory to Register
-    public void ExecuteAMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
+    public void ExecuteAMR(short r, short x, short address, Memory memory){
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -367,13 +438,32 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
-            Execute(memory);
+            try {
+				Execute(memory);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             
             // Add MBR to register r
             short currentValue = getGPR(r);
-            short memoryValue = getMemoryBufferValue();
-            short result = (short) (currentValue + memoryValue);
-            setGPR(r, result);
+            short memoryValue;
+			try {
+				memoryValue = getMemoryBufferValue();
+				short result = (short) (currentValue + memoryValue);
+	            setGPR(r, result);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				System.out.println("AMR Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -383,7 +473,7 @@ public class CPU_1_Simple extends Transformer {
     }
     
     // Execute SMR instruction: Subtract Memory from Register
-    public void ExecuteSMR(short r, short x, short address, Memory memory) throws BlankCharArrayException{
+    public void ExecuteSMR(short r, short x, short address, Memory memory) {
         // Calculate effective address: address + IX[x]
         short ixValue = 0;
         if (x > 0 && x <= 3) {
@@ -396,13 +486,34 @@ public class CPU_1_Simple extends Transformer {
         if (effectiveAddress >= 0 && effectiveAddress < 32) {
             // Set MAR and read from memory
             setMemoryAddressRegister(effectiveAddress);
-            Execute(memory);
+            
+            
+            try {
+				Execute(memory);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             
             // Subtract MBR from register r
             short currentValue = getGPR(r);
-            short memoryValue = getMemoryBufferValue();
-            short result = (short) (currentValue - memoryValue);
-            setGPR(r, result);
+            short memoryValue;
+			try {
+				memoryValue = getMemoryBufferValue();
+				short result = (short) (currentValue - memoryValue);
+	            setGPR(r, result);
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            try {
+            	System.out.println("SMR Executed");
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Memory fault - display error and stop execution
             memoryFaultRegister[0] = 1;
@@ -417,18 +528,74 @@ public class CPU_1_Simple extends Transformer {
         short currentValue = getGPR(r);
         short result = (short) (currentValue + immediate);
         setGPR(r, result);
+        try {
+        	System.out.println("AIR Executed");
+			IncrementPCBy1();
+		} catch (BlankCharArrayException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     // Execute SIR instruction: Subtract Immediate from Register
-    public void ExecuteSIR(short r, short immediate, Memory memory) {
+    public void ExecuteSIR(short r, short immediate) {
         // Subtract immediate value from register r
         short currentValue = getGPR(r);
         short result = (short) (currentValue - immediate);
         setGPR(r, result);
+        try {
+        	System.out.println("SIR Executed");
+			IncrementPCBy1();
+		} catch (BlankCharArrayException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
+    public void ExecuteJNE(short r, short address) {
+        short currentValue = getGPR(r);
+        if (currentValue != 0) {
+        	setProgramCounter((short) address);
+        	System.out.println("JNE Executed");
+        	return;
+        }
+        try {
+        	System.out.println("JNE Executed");
+			IncrementPCBy1();
+		} catch (BlankCharArrayException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    public void ExecuteIN(short r, String input) {
+        short currentValue = getGPR(r);
+        short result = Short.parseShort(input);
+        setGPR(r, result);
+        try {
+        	System.out.println("IN Executed");
+			IncrementPCBy1();
+		} catch (BlankCharArrayException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    
+    public void IncrementPCBy1() throws BlankCharArrayException{
+    	try {
+    		short currentPC = getProgramCounter();
+    		setProgramCounter((short)(currentPC+1));
+    	}catch(BlankCharArrayException e) {
+    		System.out.println("PC is not defined");
+    	}
+    	
+    	
+    }
+    
+    
     // Main instruction execution method
-    public void ExecuteInstruction(int machineCode, Memory memory) throws BlankCharArrayException{
+    public void ExecuteInstruction(int machineCode, Memory memory, String input){
         int opcode = (machineCode >>> 10) & 0x3F;
         int r = (machineCode >>> 8) & 0x3;
         int x = (machineCode >>> 6) & 0x3;
@@ -440,51 +607,58 @@ public class CPU_1_Simple extends Transformer {
                 // HLT - Halt execution
                 break;
                 
-            case LOAD_REGISTER_OPCODE:
+            case LOAD_REGISTER_OPCODE_LDR:
                 // LDR - Load Register from memory
                 ExecuteLDR((short) r, (short) x, (short) address, memory);
                 break;
                 
-            case STORE_REGISTER_OPCODE:
+            case STORE_REGISTER_OPCODE_STR:
                 // STR - Store Register to memory
                 ExecuteSTR((short) r, (short) x, (short) address, memory);
                 break;
                 
-            case LOAD_ADDRESS_OPCODE:
+            case LOAD_ADDRESS_OPCODE_LDA:
                 // LDA - Load Address
                 ExecuteLDA((short) r, (short) x, (short) address, memory);
                 break;
                 
-            case LOAD_INDEX_OPCODE:
+            case LOAD_INDEX_OPCODE_LDX:
                 // LDX - Load Index register
                 ExecuteLDX((short) x, (short) address, memory);
                 break;
                 
-            case STORE_INDEX_OPCODE:
+            case STORE_INDEX_OPCODE_STX:
                 // STX - Store Index register
                 ExecuteSTX((short) x, (short) address, memory);
                 break;
                 
-            case ADD_MEMORY_REGISTER_OPCODE:
+            case ADD_MEMORY_REGISTER_OPCODE_AMR:
                 // AMR - Add Memory to Register
                 ExecuteAMR((short) r, (short) x, (short) address, memory);
                 break;
                 
-            case SUBTRACT_MEMORY_REGISTER_OPCODE:
+            case SUBTRACT_MEMORY_REGISTER_OPCODE_SMR:
                 // SMR - Subtract Memory from Register
                 ExecuteSMR((short) r, (short) x, (short) address, memory);
                 break;
                 
-            case ADD_IMMEDIATE_REGISTER_OPCODE:
+            case ADD_IMMEDIATE_REGISTER_OPCODE_AIR:
                 // AIR - Add Immediate to Register
                 ExecuteAIR((short) r, (short) address, memory);
                 break;
                 
-            case SUBTRACT_IMMEDIATE_REGISTER_OPCODE:
+            case SUBTRACT_IMMEDIATE_REGISTER_OPCODE_SIR:
                 // SIR - Subtract Immediate from Register
-                ExecuteSIR((short) r, (short) address, memory);
+                ExecuteSIR((short) r, (short) address);
                 break;
-                
+            
+            case INPUT_OPCODE_IN:
+            	ExecuteIN((short) r, input);
+            	break;
+            
+            case JUMP_IF_NOT_EQUAL_OPCODE_JNE:
+            	ExecuteJNE((short)r, (short)address);
+             
             default:
                 // Unknown opcode - display error and stop execution
                 memoryFaultRegister[0] = 1;
@@ -495,8 +669,15 @@ public class CPU_1_Simple extends Transformer {
         
         // Increment PC for all instructions except HLT
         if (opcode != HALT_OPCODE) {
-            short pc = getProgramCounter();
-            setProgramCounter((short) (pc + 1));
+            short pc;
+			try {
+				pc = getProgramCounter();
+				IncrementPCBy1();
+			} catch (BlankCharArrayException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
         }
     }
     
@@ -505,23 +686,23 @@ public class CPU_1_Simple extends Transformer {
         switch (opcode) {
             case HALT_OPCODE:
                 return "HLT";
-            case LOAD_REGISTER_OPCODE:
+            case LOAD_REGISTER_OPCODE_LDR:
                 return "LDR " + r + "," + x + "," + address;
-            case STORE_REGISTER_OPCODE:
+            case STORE_REGISTER_OPCODE_STR:
                 return "STR " + r + "," + x + "," + address;
-            case LOAD_ADDRESS_OPCODE:
+            case LOAD_ADDRESS_OPCODE_LDA:
                 return "LDA " + r + "," + x + "," + address;
-            case LOAD_INDEX_OPCODE:
+            case LOAD_INDEX_OPCODE_LDX:
                 return "LDX " + x + "," + address;
-            case STORE_INDEX_OPCODE:
+            case STORE_INDEX_OPCODE_STX:
                 return "STX " + x + "," + address;
-            case ADD_MEMORY_REGISTER_OPCODE:
+            case ADD_MEMORY_REGISTER_OPCODE_AMR:
                 return "AMR " + r + "," + x + "," + address;
-            case SUBTRACT_MEMORY_REGISTER_OPCODE:
+            case SUBTRACT_MEMORY_REGISTER_OPCODE_SMR:
                 return "SMR " + r + "," + x + "," + address;
-            case ADD_IMMEDIATE_REGISTER_OPCODE:
+            case ADD_IMMEDIATE_REGISTER_OPCODE_AIR:
                 return "AIR " + r + "," + address;
-            case SUBTRACT_IMMEDIATE_REGISTER_OPCODE:
+            case SUBTRACT_IMMEDIATE_REGISTER_OPCODE_SIR:
                 return "SIR " + r + "," + address;
             default:
                 return "UNK " + opcode;
@@ -535,6 +716,7 @@ public class CPU_1_Simple extends Transformer {
         System.out.println();
         
         // Create memory and load test file
+        String testStr = "24";
         Memory memory = new Memory();
         File testFile = new File("test/" + testFileName + "_load.txt");
         
@@ -596,7 +778,7 @@ public class CPU_1_Simple extends Transformer {
             }
             
             // Execute instruction
-            ExecuteInstruction(machineCode, memory);
+            ExecuteInstruction(machineCode, memory, testStr);
             
             // Show register state after instruction
             String instruction = getInstructionName(opcode, r, x, address);

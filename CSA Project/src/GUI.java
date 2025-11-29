@@ -22,11 +22,13 @@ public class GUI extends Application {
     private TextField pcField, marField, mbrField, irField, ccField;
     private TextField binaryField, octalField;
     
+    
 
     @Override
     public void start(Stage primaryStage) {
+    	System.out.println("Set PC to 0");
+    	
         primaryStage.setTitle("CSCI 6461 Machine Simulator");
-
         HBox root = new HBox(50);
         VBox leftchild = new VBox(50);
 
@@ -206,11 +208,7 @@ public class GUI extends Application {
         Button run = new Button("Run");
         run.setOnAction(e -> {
             // Run all instructions continuously until HLT or completion
-            try {
-            	runAllInstructions();
-            }catch(BlankCharArrayException exp) {
-        		System.out.println("Nothing found in PC");
-        	}
+            runAllInstructions();
         });
 
         Button step = new Button("Step");
@@ -286,7 +284,7 @@ public class GUI extends Application {
     }
     
     // Run all instructions continuously until HLT or completion
-    private void runAllInstructions() throws BlankCharArrayException{
+    private void runAllInstructions(){
         haltRequested = false; // Reset halt flag
         short maxInstructions = 1000; // Safety limit to prevent infinite loops
         short instructionCount = 0;
@@ -295,17 +293,20 @@ public class GUI extends Application {
         for (int i = 0; i < 25; i++) {
             System.out.println("Memory[" + i + "] = " + memory.getValue(i));
         }
+        
 
         while (instructionCount < maxInstructions && !haltRequested) {
         	try {
 	            short pc = cpu.getProgramCounter();
+	            System.out.println("PC set");
 	            if (pc < 0 || pc >= 32) {
 	                break; // Out of bounds
 	            }
 	            
 	            Integer machineCode = memory.getValue(pc);
+	            
 	            if (machineCode == null) {
-	                break; // No instruction at this address
+	            	continue;
 	            }
 	            
 	            // Check for HLT instruction (opcode 0x00)
@@ -315,8 +316,10 @@ public class GUI extends Application {
 	                break;
 	            }
 	            
+
+	            String inputStr = octalField.getText().trim();
 	            // Execute the instruction
-	            executeInstruction(machineCode);
+	            cpu.ExecuteInstruction(machineCode, memory, inputStr);
 	            instructionCount++;
         	}catch(BlankCharArrayException exp) {
         		System.out.println("Nothing is found in PC");
@@ -351,6 +354,44 @@ public class GUI extends Application {
             	}catch(BlankCharArrayException exp) {
             		System.out.println("Nothing found in PC");
             	}
+   
+            case 0x21: // LDX opcode 41 (octal) = 33 decimal = 0x21 hex
+                try {
+                    cpu.ExecuteLDX((short) r, (short) address, memory);
+                    short currentPC = cpu.getProgramCounter();
+                    cpu.setProgramCounter((short) (currentPC + 1));
+                } catch (Exception exp) {
+                    System.out.println("Error executing LDX");
+                }
+                break;
+
+   
+
+            case 0x02: // STR opcode 02 (octal) = 2 decimal = 0x02 hex
+                try {
+                    cpu.ExecuteSTR((short) r, (short) x, (short) address, memory);
+                    short currentPC = cpu.getProgramCounter();
+                    cpu.setProgramCounter((short) (currentPC + 1));
+                } catch (Exception exp) {
+                    System.out.println("Error executing STR");
+                }
+                break;
+
+            
+
+            case 0x07: // SIR opcode 07 (octal) = 7 decimal = 0x07 hex
+                try {
+                    cpu.ExecuteSIR((short) r, (short) address);
+                    short currentPC = cpu.getProgramCounter();
+                    cpu.setProgramCounter((short) (currentPC + 1));
+                } catch (Exception exp) {
+                    System.out.println("Error executing SIR");
+                }
+                break;
+
+            
+            	
+            
             case 0x00: // HLT - Halt
                 System.out.println("HLT instruction executed");
                 break;
@@ -432,6 +473,8 @@ public class GUI extends Application {
 
 
     public static void main(String[] args) {
+    	
         launch(args);
+        
     }
 }
