@@ -117,15 +117,15 @@ public class CPU extends Transformer {
         return memoryBufferRegister;
     }
 
-    public short getMemoryAddressValue() {
-        return BinaryToDecimal(memoryAddressRegister, 12);
+    public short getMemoryAddressValue() throws BlankCharArrayException{
+    		return BinaryToDecimal(memoryAddressRegister, 12);
     }
 
-    public short getMemoryBufferValue() {
+    public short getMemoryBufferValue() throws BlankCharArrayException{
         return BinaryToDecimal(memoryBufferRegister, 16);
     }
 
-    public void Execute(Memory memory) {
+    public void Execute(Memory memory) throws BlankCharArrayException{
         short marVal = BinaryToDecimal(memoryAddressRegister, 12);
         if (marVal >= 0 && marVal < 32) {
             int val = memory.getValue(marVal);

@@ -43,4 +43,8 @@ class Memory extends Storage {
     public void showCache() {
         cache.showCache();
     }
+    
+    public void resetCache() {
+        cache.resetCache();
+    }
 }
