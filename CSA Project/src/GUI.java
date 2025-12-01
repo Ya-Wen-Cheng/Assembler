@@ -1,21 +1,25 @@
-import javafx.event.ActionEvent;
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
-import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
 import java.io.File;
+import java.util.Scanner;
+
 	
 public class GUI extends Application {
 
+    private final CPU_1_Simple cpu = new CPU_1_Simple();
+    private final Memory memory = new Memory();
 
-    private CPU_1_Simple cpu = new CPU_1_Simple();
-    private Memory memory = new Memory();
-    private boolean haltRequested = false;
+    private volatile boolean haltRequested = false;
+    private volatile boolean running = false;
 
     private TextField[] gprFields = new TextField[4];
     private TextField[] ixrFields = new TextField[3];
@@ -28,11 +32,10 @@ public class GUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("CSCI 6461 Machine Simulator");
+        primaryStage.setTitle("CSCI 6461 Machine Simulator — Program 2");
 
         HBox root = new HBox(50);
-        VBox leftchild = new VBox(50);
-
+        VBox leftchild = new VBox(30);
         root.setPadding(new Insets(10));
         root.setStyle("-fx-background-color: #C8E1F5;");
 
@@ -52,40 +55,49 @@ public class GUI extends Application {
         updateCacheDisplay();
     }
 
+    // ---------------------------------------------------------
+    //  REGISTER PANEL (GPR, IXR, PC, MAR, MBR, IR, CC)
+    // ---------------------------------------------------------
     private GridPane createRegisterPanel() {
         GridPane grid = new GridPane();
-        grid.setHgap(15);
+        grid.setHgap(12);
         grid.setVgap(8);
         grid.setPadding(new Insets(10, 20, 10, 20));
 
-        Label gprLabel = new Label("GPR");
-        Label ixrLabel = new Label("IXR");
-        grid.add(gprLabel, 0, 0);
-        grid.add(ixrLabel, 4, 0);
+        grid.add(new Label("GPR"), 0, 0);
+        grid.add(new Label("IXR"), 4, 0);
 
-    for (int i = 0; i < 4; i++) {
+        // GPRs
+        for (int i = 0; i < 4; i++) {
             gprFields[i] = new TextField();
-            gprFields[i].setPrefWidth(70);
-            int index = i;
+            gprFields[i].setPrefWidth(80);
+            int idx = i;
+
             Button btn = new Button("↔");
             btn.setOnAction(e -> {
-                short val = Short.parseShort(gprFields[index].getText());
-                cpu.setGPR((short) index, val);
+                short val = parseShortSafe(gprFields[idx].getText());
+                cpu.setGPR((short) idx, val);
+                updateRegisterDisplay();
             });
+
             grid.add(new Label("R" + i), 0, i + 1);
             grid.add(gprFields[i], 1, i + 1);
             grid.add(btn, 2, i + 1);
         }
 
-    for (int i = 0; i < 3; i++) {
+        // IXRs
+        for (int i = 0; i < 3; i++) {
             ixrFields[i] = new TextField();
-            ixrFields[i].setPrefWidth(70);
-            int index = i;
+            ixrFields[i].setPrefWidth(80);
+            int idx = i + 1;
+
             Button btn = new Button("↔");
             btn.setOnAction(e -> {
-                short val = Short.parseShort(ixrFields[index].getText());
-                cpu.setIXR((short) (index + 1), val);
+                short val = parseShortSafe(ixrFields[idx - 1].getText());
+                cpu.setIXR((short) idx, val);
+                updateRegisterDisplay();
             });
+
             grid.add(new Label("X" + (i + 1)), 4, i + 1);
             grid.add(ixrFields[i], 5, i + 1);
             grid.add(btn, 6, i + 1);
@@ -97,13 +109,18 @@ public class GUI extends Application {
         mfrField = new TextField()};
 
         int row = 1;
-        for (int i = 0; i < regs.length; i++) {
-            Label label = new Label(regs[i]);
+        for (int i = 0; i < names.length; i++) {
+            Label lbl = new Label(names[i]);
             TextField tf = fields[i];
-            tf.setPrefWidth(100);
+            tf.setPrefWidth(120);
+
             Button btn = new Button("↔");
 
-            switch (regs[i]) {
+            switch (names[i]) {
+                case "PC" -> btn.setOnAction(e -> {
+                    cpu.setProgramCounter(parseShortSafe(pcField.getText()));
+                    updateRegisterDisplay();
+                });
                 case "MAR" -> btn.setOnAction(e -> {
                     short marVal = Short.parseShort(marField.getText());
                     cpu.setMemoryAddressRegister(marVal);
@@ -123,9 +140,10 @@ public class GUI extends Application {
                 	}
                 	             	
                 });
+                default -> btn.setDisable(true);
             }
 
-            grid.add(label, 8, row);
+            grid.add(lbl, 8, row);
             grid.add(tf, 9, row);
             if (!regs[i].equals("IR") && !regs[i].equals("CC") && !regs[i].equals("MFR")) grid.add(btn, 10, row);
             row++;
@@ -182,6 +200,9 @@ public class GUI extends Application {
         return right;
     }
 
+    // ---------------------------------------------------------
+    //  BOTTOM CONTROL PANEL
+    // ---------------------------------------------------------
     private BorderPane createBottomPanel() {
         BorderPane bottom = new BorderPane();
 
@@ -366,6 +387,7 @@ public class GUI extends Application {
         bottom.setLeft(input);
         bottom.setRight(controlButtons);
 
+        bottom.setRight(controls);
         return bottom;
     }
 
@@ -503,7 +525,6 @@ public class GUI extends Application {
         }
     }
 
-    // Update register display in GUI
     private void updateRegisterDisplay() {
         // Update GPR fields
         for (int i = 0; i < 4; i++) {
@@ -602,7 +623,12 @@ public class GUI extends Application {
     }
 
 
+    private void logToPrinter(String s) {
+        cpu.printer.write(s);
+    }
+
     public static void main(String[] args) {
         launch(args);
     }
 }
+

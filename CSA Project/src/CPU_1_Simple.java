@@ -1,4 +1,4 @@
-import java.util.Arrays;
+import java.util.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
@@ -161,13 +161,12 @@ public class CPU_1_Simple extends Transformer {
         generalRegister.data.clear();
         indexRegister.data.clear();
         conditionRegister.data.clear();
-        
-        // Reset char arrays
-        Arrays.fill(instructionRegister, (char) 0);
-        Arrays.fill(memoryBufferRegister, (char) 0);
-        Arrays.fill(programCounter, (char) 0);
-        Arrays.fill(memoryAddressRegister, (char) 0);
-        Arrays.fill(memoryFaultRegister, (char) 0);
+        Arrays.fill(IR,(char)0);
+        Arrays.fill(MBR,(char)0);
+        Arrays.fill(MAR,(char)0);
+        Arrays.fill(PC,(char)0);
+        Arrays.fill(MFR,(char)0);
+        linkRegister = 0;
     }
 
     public void Reset(Memory memory) {
@@ -237,36 +236,28 @@ public class CPU_1_Simple extends Transformer {
         }
     }
 
-    public void setIXR(short ix, short value) {
-        try {
-            indexRegister.setValue(ix, value);
-            System.out.println("Set IXR "+ix+" to "+ value);
-        } catch (IllegalArgumentException e) {
-            System.out.println("ERROR: Invalid IXR register number " + ix + " - must be 1-3");
-            System.exit(1);
-        }
+    public static FileChooser getROMFileChooser(){
+        FileChooser fc=new FileChooser();
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text","*.txt"));
+        return fc;
     }
 
-    public void setProgramCounter(short value) {
-        DecimalToBinary(value, programCounter, 12);
-    }
+    // ================= Register helpers =================
 
-    public void setMemoryAddressRegister(short value) {
-        DecimalToBinary(value, memoryAddressRegister, 12);
-    }
+    public void setGPR(short r, short v){ generalRegister.setValue(r,v); }
+    public short getGPR(short r){ Integer x=generalRegister.getValue(r); return x==null?0:x.shortValue(); }
 
-    public void setMemoryBufferRegister(short value) {
-        DecimalToBinary(value, memoryBufferRegister, 16);
-    }
+    public void setIXR(short x, short v){ indexRegister.setValue(x,v); }
+    public short getIXR(short x){ Integer v=indexRegister.getValue(x); return v==null?0:v.shortValue(); }
 
-    public void setConditionCode(short value) {
-        try {
-            conditionRegister.setValue(0, value);
-        } catch (IllegalArgumentException e) {
-            System.out.println("ERROR: Invalid condition code value " + value);
-            System.exit(1);
-        }
-    }
+    public void setPC(short v){ DecimalToBinary(v,PC,12); }
+    public short getPC(){ return BinaryToDecimal(PC,12); }
+
+    public void setMAR(short v){ DecimalToBinary(v,MAR,12); }
+    public short getMAR(){ return BinaryToDecimal(MAR,12); }
+
+    public void setMBR(short v){ DecimalToBinary(v,MBR,16); }
+    public short getMBR(){ return BinaryToDecimal(MBR,16); }
 
     // Register getter methods
     public short getMemoryAddressValue() throws BlankCharArrayException {
@@ -276,22 +267,21 @@ public class CPU_1_Simple extends Transformer {
     public short getMemoryBufferValue() throws BlankCharArrayException{
         return BinaryToDecimal(memoryBufferRegister, 16);
     }
-    
-    public short getGPR(short reg) {
-        try {
-            Integer value = generalRegister.getValue(reg);
-            return value != null ? value.shortValue() : 0;
-        } catch (IllegalArgumentException e) {
-            return 0;
-        }
+
+    private short EA(int x,int d,int i,Memory mem){
+        int base=(x>0&&x<=3)?(getIXR((short)x)&0x0FFF):0;
+        int ea=(d&0x1F)+base;
+        if(i==1) ea=mem.readFromCache((short)(ea&0x0FFF)) & 0x0FFF;
+        return (short)(ea&0x0FFF);
     }
-    
-    public short getIXR(short ix) {
-        try {
-            Integer value = indexRegister.getValue(ix);
-            return value != null ? value.shortValue() : 0;
-        } catch (IllegalArgumentException e) {
-            return 0;
+
+    // ================= Blocking char input =================
+
+    private short readKeyboard(){
+        while(true){
+            int c=keyboard.readChar();
+            if(c!=-1) return (short)c;
+            try{ Thread.sleep(5);}catch(Exception ignored){}
         }
     }
     
@@ -573,40 +563,57 @@ public class CPU_1_Simple extends Transformer {
                 // STR - Store Register to memory
                 ExecuteSTR((short) r, (short) x, (short) address, memory);
                 break;
-                
-            case LOAD_ADDRESS_OPCODE:
-                // LDA - Load Address
-                ExecuteLDA((short) r, (short) x, (short) address, memory);
+            }
+
+            case JGE:{
+                if(getGPR((short)r)>=0){ setPC(EA(x,d,i,mem)); return true; }
                 break;
-                
-            case LOAD_INDEX_OPCODE:
-                // LDX - Load Index register
-                ExecuteLDX((short) x, (short) address, memory);
+            }
+
+            case TRR:{
+                int rx=(code>>>8)&3;
+                int ry=(code>>>6)&3;
+                int lhs=getGPR((short)rx), rhs=getGPR((short)ry);
+                short cc= (lhs==rhs?1: lhs<rhs?2:4);
+                setCC(cc);
                 break;
-                
-            case STORE_INDEX_OPCODE:
-                // STX - Store Index register
-                ExecuteSTX((short) x, (short) address, memory);
+            }
+
+            case AND:{
+                int rx=(code>>>8)&3, ry=(code>>>6)&3;
+                setGPR((short)rx,(short)(getGPR((short)rx)&getGPR((short)ry)));
                 break;
-                
-            case ADD_MEMORY_REGISTER_OPCODE:
-                // AMR - Add Memory to Register
-                ExecuteAMR((short) r, (short) x, (short) address, memory);
+            }
+
+            case ORR:{
+                int rx=(code>>>8)&3, ry=(code>>>6)&3;
+                setGPR((short)rx,(short)(getGPR((short)rx)|getGPR((short)ry)));
                 break;
-                
-            case SUBTRACT_MEMORY_REGISTER_OPCODE:
-                // SMR - Subtract Memory from Register
-                ExecuteSMR((short) r, (short) x, (short) address, memory);
+            }
+
+            case NOT:{
+                int rx=(code>>>8)&3;
+                setGPR((short)rx,(short)~getGPR((short)rx));
                 break;
-                
-            case ADD_IMMEDIATE_REGISTER_OPCODE:
-                // AIR - Add Immediate to Register
-                ExecuteAIR((short) r, (short) address, memory);
+            }
+
+            case SRC:
+            case RRC:{
+                short val=getGPR((short)r);
+                int c=d&0x1F;
+                if(op==SRC) val=(short)((val&0xFFFF)<<c);
+                else{
+                    int u=val&0xFFFF;
+                    val=(short)(((u>>>c)|(u<<(16-c)))&0xFFFF);
+                }
+                setGPR((short)r,val);
                 break;
-                
-            case SUBTRACT_IMMEDIATE_REGISTER_OPCODE:
-                // SIR - Subtract Immediate from Register
-                ExecuteSIR((short) r, (short) address, memory);
+            }
+
+            case IN:{
+                int dev=d&0x1F;
+                short v=(dev==0?readKeyboard():dev==2?readCard(): (short)console.readChar());
+                setGPR((short)r,v);
                 break;
             
             case JZ_OPCODE:
@@ -1260,32 +1267,14 @@ public class CPU_1_Simple extends Transformer {
                 System.out.println("HLT instruction executed - stopping");
                 break;
             }
-            
-            // Execute instruction
-            ExecuteInstruction(machineCode, memory);
-            
-            // Show register state after instruction
-            String instruction = getInstructionName(opcode, r, x, address);
-            System.out.println(String.format("%2d | %3d %3d %3d %3d | %3d %3d %3d | %5d | %s", 
-                pc, getGPR((short) 0), getGPR((short) 1), getGPR((short) 2), getGPR((short) 3),
-                getIXR((short) 1), getIXR((short) 2), getIXR((short) 3), getMemoryFaultRegister(), instruction));
-            
-            // Increment PC for next instruction
-            setProgramCounter((short) (pc + 1));
-            instructionCount++;
+
+            default:
+                System.out.println("Bad opcode "+op+" at PC "+getPC());
+                return false;
         }
-        
-        System.out.println();
-        System.out.println("=== Test Summary ===");
-        System.out.println("✓ Memory fault handling: Errors displayed and execution stopped");
-        System.out.println("✓ Register operations: Working correctly with error checking");
-        System.out.println("✓ Instruction execution: Completed successfully");
-        System.out.println("✓ Uses existing register classes: GeneralRegister, IndexRegister, ConditionRegister");
-        System.out.println();
-        System.out.println("=== Key Features ===");
-        System.out.println("✓ Memory faults display error messages and stop execution");
-        System.out.println("✓ Invalid register numbers display errors and stop execution");
-        System.out.println("✓ Unknown opcodes display errors and stop execution");
+
+        setPC(pcNext);
+        return true;
     }
     
     // Static method to run test
@@ -1305,4 +1294,3 @@ public class CPU_1_Simple extends Transformer {
         }
     }
 }
-
